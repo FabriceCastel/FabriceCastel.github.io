@@ -1,0 +1,205 @@
+<html>
+
+<head>
+<title>FabGL</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+  precision mediump float;
+
+  const float MAX_DISTANCE = 10000.0;
+  const float EPSILON = 0.001;
+  const float PI = 3.14159265359;
+  const int MAX_ITERATIONS = 400000;
+  vec3 light1 = vec3(50.0, 1400.0, 635.0);
+  const vec3 light2 = vec3(-600.0, -200.0, -700.0);
+  const vec3 baseMaterial = vec3(0.92, 0.92, 0.92);
+  const vec3 specMaterial = vec3(1.0, 1.0, 1.0);
+  const vec3 ambientMaterial = vec3(0.02, 0.02, 0.02);
+  const float shininess = 8000.0;
+
+  float fov = 50.0;
+  float fovx = PI * fov / 360.0;
+  float fovy = fovx * 1.0; // height/width = 1.0 in the square canvas
+  float ulen = tan(fovx);
+  float vlen = tan(fovy);
+  vec3 camPos = vec3(0.0, 0.0, 0.0);
+  vec3 camDir = vec3(0.0, 0.0, 1.0);
+  vec3 camUp = vec3(0.0, 1.0, 0.0);
+  float camDist = 120.0;
+
+  float camOrbitSpeed = 20.0;
+
+  // Inputs
+  varying vec2 uv;
+  uniform float t; // time as frame number
+
+  // Utils
+  float max(float a, float b, float c){
+    return max(a, max(b, c));
+  }
+
+  float max(float a, float b, float c, float d){
+    return max(max(a, b), max(c, d));
+  }
+
+  float min(float a, float b, float c){
+    return min(min(a, b), c);
+  }
+
+  float min(float a, float b, float c, float d){
+    return min(min(a, b), min(c, d));
+  }
+
+  // Primitive distance functions
+  float sphere(vec3 p, vec3 orig, float r){
+    return length(p-orig) - r;
+  }
+
+  float baseOrigCube(vec3 p, float hdim){
+    return max(abs(p[0]) - hdim, abs(p[1]) - hdim, abs(p[2]) - hdim);
+  }
+
+  float cube(vec3 p, vec3 orig, float dim){
+    float hdim = dim/2.0;
+    vec3 modP = abs(p - orig);
+    if(modP[0] > hdim || modP[1] > hdim || modP[2] > hdim){
+      vec3 sph = vec3(min(modP[0], hdim), min(modP[1], hdim), min(modP[2], hdim));
+      return length(modP - sph);
+    } else {
+      return baseOrigCube(modP, hdim);
+    }
+  }
+
+  // Combination operators
+  float cSmooth(float a, float b, float r){
+    float res = exp(-r*a) + exp(-r*b);
+    return -log(res)/r;
+  }
+
+  float cSmooth(float a, float b, float c, float d, float r){
+    return cSmooth(cSmooth(a, b, r), cSmooth(c, d, r), r);
+  }
+
+  float cBool(float a, float b){
+    return max(a, b);
+  }
+
+  // Scene distance function
+  float sDist(vec3 p){
+    float base = sphere(p, vec3(0.0, 0.0, 0.0), 25.0 + 5.0*sin(0.007*t+0.35));
+    float s1 = sphere(p, vec3(7.0*cos(0.05*t)+11.3, -9.0, 4.0*sin(0.7+0.08*t)+4.0), 19.0);
+    float s2 = sphere(p, vec3(12.0*sin(0.018*t)+11.3, 14.0, 4.0*sin(0.2+0.032*t)+4.0), 15.0);
+    float s3 = sphere(p, vec3(10.0*sin(0.06-0.02*t)+16.0, 14.0*cos(0.013*t)-4.0, 4.0), 20.0);
+    float s4 = sphere(p, vec3(10.0, 14.0*cos(0.013*t)-4.0, -10.0*sin(0.03*t)-16.0), 22.0);
+    
+    p = -p;
+    float s5 = sphere(p, vec3(7.0*cos(0.09*t)+11.3, -9.0, 4.0*sin(0.7+0.08*t)+4.0), 19.0);
+    float s6 = sphere(p, vec3(12.0*sin(0.43-0.018*t)+11.3, 9.0, 4.0*sin(0.8+0.032*t)+4.0), 4.0*cos(0.008*t)+21.0);
+    float s7 = sphere(p, vec3(10.0*sin(0.02*t)+16.0, 14.0*cos(0.3-0.013*t)-4.0, 4.0), 20.0);
+    float s8 = sphere(p, vec3(10.0, 14.0*cos(0.4+0.013*t)-4.0, -10.0*sin(0.06*t)-16.0), 18.0);
+    
+    float g1 = cSmooth(s1, s2, 0.2);
+    float g2 = cSmooth(s3, s4, 0.2);
+    float g3 = cSmooth(s5, s6, 0.2);
+    float g4 = cSmooth(s7, s8, 0.2);
+    float group = cSmooth(g1, g2, g3, g4, 0.3);
+    
+    float blob = cSmooth(base, group, 0.5);
+    return blob;
+  }
+  
+  // 6 point sample normal
+  vec3 sNormal(vec3 p){
+    vec3 a = p + EPSILON*vec3(-1,  0,  0);
+    vec3 b = p + EPSILON*vec3( 1,  0,  0);
+    vec3 c = p + EPSILON*vec3( 0, -1,  0);
+    vec3 d = p + EPSILON*vec3( 0,  1,  0);
+    vec3 e = p + EPSILON*vec3( 0,  0, -1);
+    vec3 f = p + EPSILON*vec3( 0,  0,  1);
+    return
+      normalize(
+        sDist(a)*(a-p) +
+        sDist(b)*(b-p) +
+        sDist(c)*(c-p) +
+        sDist(d)*(d-p) +
+        sDist(e)*(e-p) +
+        sDist(f)*(f-p));
+  }
+
+  // Blinn-Phong shader
+  vec3 blinnPhongShade(vec3 p, vec3 eye, vec3 light){
+    vec3 n = sNormal(p);
+    vec3 eyeToPoint = normalize(p - eye);
+    vec3 pointToLight = normalize(light - p);
+    if(dot(n, eyeToPoint) > 0.0) return ambientMaterial;
+    else {
+      float sdn = max(dot(pointToLight, n), 0.0);
+      vec3 diffuse = baseMaterial * sdn;
+      float cosAngInsicende = dot(n, pointToLight);
+      vec3 halfAngle = light - p + eye - p;
+      float halfAngleLen = length(halfAngle);
+      halfAngle = normalize(normalize(halfAngle) * 1.0/halfAngleLen);
+      float blinnTerm = dot(halfAngle, n);
+      if(blinnTerm < 0.0 || cosAngInsicende == 0.0) blinnTerm = 0.0;
+      else if(blinnTerm > 1.0) blinnTerm = 1.0;
+      return ambientMaterial + diffuse + specMaterial*pow(blinnTerm, shininess);
+    }
+  }
+  vec3 blinnPhongShade(vec3 p, vec3 eye){
+    return blinnPhongShade(p, eye, light1);// + blinnPhongShade(p, eye, light2);
+  }
+
+  void main(void) {
+    vec2 adjUV = uv*2.0 - vec2(1.0, 1.0); // -1 to 1
+
+    camPos = vec3(sin(t*0.001*camOrbitSpeed)*camDist, 50.0, cos(t*0.001*camOrbitSpeed)*camDist);
+    camDir = -camPos;
+
+    vec3 nright = normalize(cross(camUp, camDir));
+    vec3 nup = normalize(cross(nright, camDir));
+    vec3 dir = normalize(camDir);
+    vec3 pixel = camPos + dir + nright*adjUV[0]*ulen + nup*adjUV[1]*vlen;
+    vec3 ray = normalize(pixel - camPos);
+    // light1 = camPos + vec3();
+
+    float d = 0.0;
+    float delta = 0.0;
+    for(int i = 0; i < MAX_ITERATIONS; i++){ // can't use while loops in WebGL shaders
+      delta = sDist(pixel + d*ray);
+      if(delta <= EPSILON){
+        gl_FragColor = vec4(blinnPhongShade(pixel + d*ray, camPos), 1.0);
+        break;
+      }
+      d = d + delta;
+      if(d >= MAX_DISTANCE){
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 0.0);
+        break;
+      }
+    }
+  }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+  precision mediump float;
+  varying vec2 uv;
+  attribute vec3 aVertexPosition;
+  uniform mat4 uMVMatrix;
+  uniform mat4 uPMatrix;
+  void main(void) {
+    uv = vec2(aVertexPosition[0], 1.0 - aVertexPosition[1]);
+    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+  }
+</script>
+
+<script type="text/javascript" src="initGL.js"></script>
+</head>
+
+
+<body onload="webGLStart();">
+  <canvas id="canvas" style="border: none;" width="800" height="800"></canvas>
+</body>
+
+</html>
