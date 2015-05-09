@@ -9,10 +9,10 @@
 <script id="shader-fs" type="x-shader/x-fragment">
   precision mediump float;
 
-  const float MAX_DISTANCE = 10000.0;
+  const float MAX_DISTANCE = 1000.0;
   const float EPSILON = 0.001;
   const float PI = 3.14159265359;
-  const int MAX_ITERATIONS = 400000;
+  const int MAX_ITERATIONS = 65000; // ints on mobile go span -2^16, 2^16
   vec3 light1 = vec3(50.0, 1400.0, 635.0);
   const vec3 light2 = vec3(-600.0, -200.0, -700.0);
   const vec3 baseMaterial = vec3(0.92, 0.92, 0.92);
