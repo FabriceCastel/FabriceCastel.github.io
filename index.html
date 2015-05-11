@@ -15,11 +15,11 @@
   const float EPSILON = 0.1;
   const float PI = 3.14159265359;
   const int MAX_ITERATIONS = 65000; // ints on mobile go span -2^16, 2^16
-  vec3 light1 = vec3(50.0, 1400.0, 1035.0);
+  const vec3 light1 = vec3(-300.0, 200.0, -1035.0);
   const vec3 light2 = vec3(-600.0, -200.0, -400.0);
-  const vec3 baseMaterial = vec3(0.82, 0.82, 0.82);
-  const vec3 specMaterial = vec3(1.0, 1.0, 1.0);
-  const vec3 ambientMaterial = vec3(0.06, 0.06, 0.06);
+  vec3 baseMaterial = vec3(0.92);
+  const vec3 specMaterial = vec3(1.0);
+  const vec3 ambientMaterial = vec3(0.04);
   const float shininess = 8000.0;
 
   float fov = 50.0;
@@ -27,16 +27,16 @@
   float fovy = fovx * 1.0; // height/width = 1.0 in the square canvas
   float ulen = tan(fovx);
   float vlen = tan(fovy);
-  vec3 camPos = vec3(0.0, 0.0, 0.0);
-  vec3 camDir = vec3(0.0, 0.0, 1.0);
-  vec3 camUp = vec3(0.0, 1.0, 0.0);
-  float camDist = 110.0;
+  const vec3 camPos = vec3(0.0, 0.0, -120.0);
+  const vec3 camDir = vec3(0.0, 0.0, 1.0);
+  const vec3 camUp = vec3(0.0, 1.0, 0.0);
 
   float camOrbitSpeed = 20.0;
 
   // Inputs
   varying vec2 uv;
   uniform float t; // time as frame number
+  uniform sampler2D u_image;
 
   // Utils
   float max(float a, float b, float c){
@@ -53,6 +53,16 @@
 
   float min(float a, float b, float c, float d){
     return min(min(a, b), min(c, d));
+  }
+
+  float intersectReflectionPlane(vec3 p, vec3 ray){
+    // dot the plane normal with the ray direction
+    float denom = dot(ray, vec3(1.0, 0.0, 0.0));
+    if(abs(denom) > EPSILON){
+        float t = (-dot(p, vec3(1.0, 0.0, 0.0)) - 55.0) / denom;
+        return t;
+    }
+    return -1.0;
   }
 
   // Primitive distance functions
@@ -95,13 +105,13 @@
     float s1 = sphere(p, vec3(7.0*cos(0.05*t)+11.3, -9.0, 4.0*sin(0.7+0.08*t)+4.0), 19.0);
     float s2 = sphere(p, vec3(12.0*sin(0.018*t)+11.3, 14.0, 4.0*sin(0.2+0.032*t)+4.0), 15.0);
     float s3 = sphere(p, vec3(10.0*sin(0.06-0.02*t)+16.0, 14.0*cos(0.013*t)-4.0, 4.0), 20.0);
-    float s4 = sphere(p, vec3(10.0, 14.0*cos(0.013*t)-4.0, -10.0*sin(0.03*t)-16.0), 22.0);
+    float s4 = sphere(p, vec3(10.0, 14.0*cos(0.013*t)-4.0, -10.0*sin(0.03*t)+5.0), 22.0);
     
     p = -p;
     float s5 = sphere(p, vec3(7.0*cos(0.09*t)+11.3, -9.0, 4.0*sin(0.7+0.08*t)+4.0), 19.0);
     float s6 = sphere(p, vec3(12.0*sin(0.43-0.018*t)+11.3, 9.0, 4.0*sin(0.8+0.032*t)+4.0), 4.0*cos(0.008*t)+21.0);
     float s7 = sphere(p, vec3(10.0*sin(0.02*t)+16.0, 14.0*cos(0.3-0.013*t)-4.0, 4.0), 20.0);
-    float s8 = sphere(p, vec3(10.0, 14.0*cos(0.4+0.013*t)-4.0, -10.0*sin(0.06*t)-16.0), 18.0);
+    float s8 = sphere(p, vec3(10.0, 9.0*cos(0.4+0.013*t)+4.0, -10.0*sin(0.06*t)-6.0), 15.0);
     
     float g1 = cSmooth(s1, s2, 0.2);
     float g2 = cSmooth(s3, s4, 0.2);
@@ -155,24 +165,42 @@
   }
 
   void main(void) {
-    vec2 adjUV = uv*2.0 - vec2(1.0, 1.0); // -1 to 1
 
-    float tn = 0.2*t - 70.0;
-    camPos = vec3(sin(tn*0.001*camOrbitSpeed)*camDist, 50.0, cos(tn*0.001*camOrbitSpeed)*camDist);
-    camDir = -camPos;
+
+    // gl_FragColor = texture2D(u_image, uv).rgba;
+    // return;
+
+
+
+
+    vec2 adjUV = uv*2.0 - vec2(1.0, 1.0); // -1 to 1
 
     vec3 nright = normalize(cross(camUp, camDir));
     vec3 nup = normalize(cross(nright, camDir));
     vec3 dir = normalize(camDir);
     vec3 pixel = camPos + dir + nright*adjUV[0]*ulen + nup*adjUV[1]*vlen;
     vec3 ray = normalize(pixel - camPos);
-    light1 = camPos + vec3(5.0, 60.0, -15.0);
 
     float d = 0.0;
     float delta = 0.0;
     for(int i = 0; i < MAX_ITERATIONS; i++){ // can't use while loops in WebGL shaders
       delta = sDist(pixel + d*ray);
       if(delta <= EPSILON){
+        vec3 inter = pixel + d*ray;
+        vec3 refRay = reflect(normalize(inter - pixel), sNormal(inter));
+        float t = intersectReflectionPlane(inter, refRay);
+        if(t > 0.0){
+          vec3 refProj = inter + t*refRay;
+          vec2 refUV = vec2(refProj[2], -refProj[1]) / 120.0 + vec2(0.7, -0.06);
+          refUV = refUV * 0.7;
+          if(abs(refUV[0]) <= 1.0 && abs(refUV[1]) <= 1.0){
+            vec3 reflectionKD = texture2D(u_image, refUV+vec2(0.5, 0.5) / 2.0).rgb;
+            if(reflectionKD != vec3(1.0)){
+              float refWeight = 0.95;
+              baseMaterial = reflectionKD * refWeight + baseMaterial * (1.0-refWeight);
+            }
+          }
+        }
         gl_FragColor = vec4(pow(blinnPhongShade(pixel + d*ray, camPos), vec3(1.0/2.2)), 1.0);
         break;
       }
@@ -219,8 +247,12 @@
   <ul style="margin-top:0px;">
     <li><a href="projects.html">$(projects)</a></li>
     <li><a href="blog.html">__blog__.cpp</a></li>
+    <li>. . .</li>
     <li><a href="mailto:fabrice.castel@hotmail.com">contactInformation.sendEmail()</a></li>
   </ul>
+  <div id="landingPageAvatarContainer">
+    <img src="assets/avatar_idle.png" class="avatar" id="landingPageAvatar"/>
+  </div>
 </body>
 
 </html>

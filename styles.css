@@ -16,6 +16,21 @@ h2 {
 	text-align: center;
 }
 
+h3 {
+	font-family: monospace;
+	font-size: 120%;
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+}
+
+p {
+	font-family: monospace;
+	text-align: justify;
+	margin-top: 30px;
+	margin-bottom: 30px;
+}
+
 ul {
 	font-family: monospace;
 	font-size: 120%;
@@ -27,6 +42,12 @@ ul {
 	padding-left: 0px;
 }
 
+code {
+	text-align: left;
+	width: 100%;
+	display: block;
+}
+
 a {
 	color: black;
 	text-decoration: none;
@@ -36,21 +57,46 @@ a:hover {
 	color: #777777;
 }
 
-/* sketchy vertical centre*/
-#vcentreContainerOuter {
-	position: absolute;
-	height: 99%;
-	width: 99%;
-}
-
-#vcentreContainerInner {
-	position: relative;
-	top: 5%;
+.blogContainer {
+	width: 70%;
 	margin-left: auto;
 	margin-right: auto;
+	text-align: center;
 }
 
-.fadein{
+.outlinedImage {
+	border-width: 1px;
+	border-color: black;
+	border-style: solid;
+}
+
+/* original dims: 20x32 */
+.avatar {
+	width: 140px;
+	height: 224px;
+	image-rendering: optimizeSpeed;             /* Older versions of FF          */
+	image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+	image-rendering: -webkit-optimize-contrast; /* Safari                        */
+	image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
+	image-rendering: pixelated;                 /* Awesome future-browsers       */
+	-ms-interpolation-mode: nearest-neighbor;   /* IE                            */
+}
+
+#landingPageAvatar {
+	position: relative;
+	left: 50%;
+	margin-left: -330px;
+}
+
+#landingPageAvatarContainer {
+	position: absolute;
+	top: 0px;
+	width: 100%;
+	margin-top: 190px;
+	height: 250px;
+}
+
+.fadein {
 	-webkit-animation: fadein 3s; /* Safari, Chrome and Opera > 12.1 */
        -moz-animation: fadein 3s; /* Firefox < 16 */
         -ms-animation: fadein 3s; /* Internet Explorer */
