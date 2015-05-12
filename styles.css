@@ -85,14 +85,14 @@ a:hover {
 #landingPageAvatar {
 	position: relative;
 	left: 50%;
-	margin-left: -330px;
+	margin-left: -370px;
 }
 
 #landingPageAvatarContainer {
 	position: absolute;
 	top: 0px;
 	width: 100%;
-	margin-top: 190px;
+	margin-top: 180px;
 	height: 250px;
 }
 

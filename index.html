@@ -59,7 +59,7 @@
     // dot the plane normal with the ray direction
     float denom = dot(ray, vec3(1.0, 0.0, 0.0));
     if(abs(denom) > EPSILON){
-        float t = (-dot(p, vec3(1.0, 0.0, 0.0)) - 55.0) / denom;
+        float t = (-dot(p, vec3(1.0, 0.0, 0.0)) - 65.0) / denom;
         return t;
     }
     return -1.0;
@@ -164,6 +164,23 @@
     return blinnPhongShade(p, eye, light1);// + blinnPhongShade(p, eye, light2);
   }
 
+  // scene texture function
+  vec3 sTexture(vec3 p){
+    float d = length(p + vec3(13.0*sin(0.01*t), -14.0*cos(0.009*t), sin(0.006*t)*8.0));
+    const float dRange = 28.0; // repeat pattern every 10 units
+    float range_min = 0.92 + (sin(0.02*t) -1.0)*0.1;
+    const float range_max = 0.92;
+    float range_span = range_max - range_min;
+    const float n3 = 1.0/3.0;
+    float x = mod(d, dRange) / dRange;
+    vec3 rainbow = vec3(0.0, 0.0, 0.0);
+    for(int i = 0; i < 3; i++){
+      rainbow[i] = mix(range_span, 0.0, min(x*3.0, (1.0-x)*3.0, 1.0));
+      x = mod(x + n3, 1.0);
+    }
+    return rainbow+vec3(range_min);
+  }
+
   void main(void) {
 
 
@@ -187,16 +204,19 @@
       delta = sDist(pixel + d*ray);
       if(delta <= EPSILON){
         vec3 inter = pixel + d*ray;
+        baseMaterial = sTexture(inter);
         vec3 refRay = reflect(normalize(inter - pixel), sNormal(inter));
         float t = intersectReflectionPlane(inter, refRay);
         if(t > 0.0){
           vec3 refProj = inter + t*refRay;
-          vec2 refUV = vec2(refProj[2], -refProj[1]) / 120.0 + vec2(0.7, -0.06);
+          vec2 refUV = vec2(refProj[2], -refProj[1]) / 70.0 + vec2(0.77, 0.1);
           refUV = refUV * 0.7;
           if(abs(refUV[0]) <= 1.0 && abs(refUV[1]) <= 1.0){
             vec3 reflectionKD = texture2D(u_image, refUV+vec2(0.5, 0.5) / 2.0).rgb;
             if(reflectionKD != vec3(1.0)){
-              float refWeight = 0.95;
+              vec3 V = -ray;
+              vec3 H = (V + refRay) / (length(V + refRay));
+              float refWeight = max(0.0, 1.0 - abs(pow(dot(H, V)+0.14, 1.0)));//0.95;
               baseMaterial = reflectionKD * refWeight + baseMaterial * (1.0-refWeight);
             }
           }
@@ -238,10 +258,11 @@
   }
 </script>
 
+<script type="text/javascript" src="avatar.js"></script>
 <script type="text/javascript" src="initGL.js"></script>
 </head>
 
-<body onload="webGLStart();" class="fadein">
+<body onload="webGLStart(); animateAvatar();" class="fadein">
   <h1 style="margin-bottom:0px;">fabrice_castel</h1>
   <canvas id="canvas" style="border: none; margin-left: auto; margin-right: auto; display: block;" width="400" height="400"></canvas>
   <ul style="margin-top:0px;">
