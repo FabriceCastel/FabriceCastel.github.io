@@ -10,7 +10,7 @@
   precision mediump float;
 
   const bool PERF_DEBUG = false;
-
+  const float NUMBER_OF_SCENES = 3.0;
   const float MAX_DISTANCE = 150.0;
   const float EPSILON = 0.1;
   const float PI = 3.14159265359;
@@ -36,7 +36,8 @@
   // Inputs
   varying vec2 uv;
   uniform float t; // time as frame number
-  uniform sampler2D u_image;
+  uniform float currentScene; // one scene per int, interpolate in-between
+  uniform sampler2D u_image; // reflection texture
 
   // Utils
   float max(float a, float b, float c){
@@ -53,6 +54,18 @@
 
   float min(float a, float b, float c, float d){
     return min(min(a, b), min(c, d));
+  }
+
+  mat4 rotationMatrix(vec3 axis, float angle){
+      axis = normalize(axis);
+      float s = sin(angle);
+      float c = cos(angle);
+      float oc = 1.0 - c;
+      
+      return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                  oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                  oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                  0.0,                                0.0,                                0.0,                                1.0);
   }
 
   float intersectReflectionPlane(vec3 p, vec3 ray){
@@ -99,8 +112,8 @@
     return max(a, b);
   }
 
-  // Scene distance function
-  float sDist(vec3 p){
+  // Scene distance functions
+  float sDist1(vec3 p){
     float base = sphere(p, vec3(0.0, 0.0, 0.0), 25.0 + 5.0*sin(0.007*t+0.35));
     float s1 = sphere(p, vec3(7.0*cos(0.05*t)+11.3, -9.0, 4.0*sin(0.7+0.08*t)+4.0), 19.0);
     float s2 = sphere(p, vec3(12.0*sin(0.018*t)+11.3, 14.0, 4.0*sin(0.2+0.032*t)+4.0), 15.0);
@@ -121,6 +134,58 @@
     
     float blob = cSmooth(base, group, 0.5);
     return blob;
+  }
+
+  float sDist2(vec3 p){
+    p = 0.8 * p;
+    float nt = 0.01*t;
+    vec4 np1 = vec4(p, 0.0);
+    vec4 np2 = np1;
+    vec4 np3 = np1;
+    vec4 np4 = np1;
+    np1 = np1 * rotationMatrix(vec3(0.0, 1.0, 0.0), -nt);
+    np2 = np1 * rotationMatrix(vec3(1.0, 0.0, 0.0), -nt*0.9);
+    np3 = np1 * rotationMatrix(vec3(0.0, 0.4, 1.0), nt*1.24);
+    np4 = np4 * rotationMatrix(vec3(-0.6, 0.7, 0.1), nt*1.67);
+    vec3 npp1 = vec3(np1[0], np1[1], np1[2]);
+    vec3 npp2 = vec3(np2[0], np2[1], np2[2]);
+    vec3 npp3 = vec3(np3[0], np3[1], np3[2]);
+    vec3 npp4 = vec3(np4[0], np4[1], np3[2]);
+    return max(cube(npp3, vec3(0.0, 0.0, 0.0), 40.0), 
+      min(cube(npp1, vec3(0.0, 0.0, 0.0), 40.0),
+        cube(npp2, vec3(0.0, 0.0, 0.0), 40.0),
+        cube(npp4, vec3(0.0, 0.0, 0.0), 36.0)));
+  }
+
+  float sDist3(vec3 p){
+    float sdist = 11.0;
+    float srad = 13.0;
+    vec4 np1 = vec4(p, 0.0);
+    mat4 rotmat = rotationMatrix(vec3(0.0, 0.0, 1.0), 0.01*t);
+    np1 = np1 * rotmat;
+    vec3 npp1 = vec3(np1[0], np1[1], np1[2]);
+    float ring1 = cSmooth(sphere(npp1, vec3(sdist), srad), sphere(npp1, vec3(-sdist), srad), 0.15);
+    np1 = np1 * rotmat;
+    npp1 = vec3(np1[0], np1[1], np1[2]);
+    sdist = 21.0;
+    srad = 7.0;
+    float ring2 = min(sphere(npp1, vec3(sdist), srad), sphere(npp1, vec3(-sdist), srad));
+    np1 = rotmat * np1;
+    npp1 = vec3(np1[0], np1[1], np1[2]);
+    sdist = 8.0;
+    srad = 1.0;
+    ring2 = cSmooth(ring2, min(sphere(npp1, vec3(sdist), srad), sphere(npp1, vec3(-sdist), srad)), 0.2);
+    return cSmooth(ring1, ring2, 0.1);
+  }
+
+  float sDist(vec3 p){
+    float cscene = mod(currentScene, NUMBER_OF_SCENES);
+    if(cscene == 0.0)
+      return sDist1(p);
+    else if(cscene <= 1.0)
+      return sDist2(p);
+    else
+      return sDist3(p);
   }
   
   // 6 point sample normal
@@ -182,14 +247,6 @@
   }
 
   void main(void) {
-
-
-    // gl_FragColor = texture2D(u_image, uv).rgba;
-    // return;
-
-
-
-
     vec2 adjUV = uv*2.0 - vec2(1.0, 1.0); // -1 to 1
 
     vec3 nright = normalize(cross(camUp, camDir));
@@ -209,7 +266,7 @@
         float t = intersectReflectionPlane(inter, refRay);
         if(t > 0.0){
           vec3 refProj = inter + t*refRay;
-          vec2 refUV = vec2(refProj[2], -refProj[1]) / 70.0 + vec2(0.77, 0.1);
+          vec2 refUV = vec2(refProj[2], -refProj[1]) / 60.0 + vec2(0.45, 0.1);
           refUV = refUV * 0.7;
           if(abs(refUV[0]) <= 1.0 && abs(refUV[1]) <= 1.0){
             vec3 reflectionKD = texture2D(u_image, refUV+vec2(0.5, 0.5) / 2.0).rgb;

@@ -2,12 +2,16 @@ var animInProg = true;
 var animSecondPhase = false;
 var assetsPath = "assets/";
 var frameIncrement = 1.2;
+var scene = 0.0;
+var changeScene = false;
+// var sceneTransitionSpeed = 2.0; // skip transitions
 
 function animateAvatar(){
 	var avatar = document.getElementById("landingPageAvatar");
 	setTimeout(function(){
 		animateClap(avatar);
 	}, 6000);
+	blink(avatar);
 }
 
 function animateClap(avatar){
@@ -18,7 +22,6 @@ function animateClap(avatar){
 	setTimeout(function(){
 		returnToIdle(avatar);
 	}, 4000);
-	blink(avatar);
 }
 
 function setupForClap(avatar){
@@ -39,17 +42,32 @@ function doClap(avatar, numberOfClaps){
 	avatar.src = assetsPath + "avatar_clap04.png";
 	setTimeout(function(){
 		avatar.src = assetsPath + "avatar_clap03.png";
-	}, 100);
+	}, 150);
 	if(numberOfClaps > 1){
 		setTimeout(function(){
 			doClap(avatar, numberOfClaps - 1);
-		}, 200);
+		}, 250);
 	} else {
-		frameIncrement = 0.5;
 		setTimeout(function(){
-			frameIncrement = 0.2;
-		}, 100);
+			gotoNextScene();
+		}, 200);
 	}
+}
+
+function gotoNextScene(){
+	iter_gotoNextScene(scene + 1.0);
+}
+
+function iter_gotoNextScene(targetScene){
+	// if(scene + sceneTransitionSpeed >= targetScene){
+		scene = targetScene;
+		changeScene = true;
+	// } else {
+	// 	scene = scene + sceneTransitionSpeed;
+	// 	setTimeout(function(){
+	// 		iter_gotoNextScene(targetScene);
+	// 	}, 20);
+	// }
 }
 
 function returnToIdle(avatar){
@@ -64,6 +82,9 @@ function iter_returnToIdle(avatar, frame){
 		}, 100);
 	} else {
 		animInProg = false;
+		setTimeout(function(){
+			animateClap(avatar);
+		}, 6000);
 	}
 }
 

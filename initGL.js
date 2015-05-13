@@ -79,7 +79,7 @@ function initBuffers() {
     squareVertexPositionBuffer.numItems = 4;
 }
 function drawScene() {
-    frame += frameIncrement;
+    frame += frameIncrement; // frameIncrement is controlled and defined in avatar.js
     requestAnimationFrame(drawScene);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -91,6 +91,11 @@ function drawScene() {
     setMatrixUniforms();
     var timeuni = gl.getUniformLocation(shaderProgram, "t");
     gl.uniform1f(timeuni, frame);
+    if(changeScene){ // use to minimise data transmission to GPU
+        var sceneuni = gl.getUniformLocation(shaderProgram, "currentScene");
+        gl.uniform1f(sceneuni, scene); // scene is defined and controlled in avatar.js
+        changeScene = false;
+    }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);    
 }
 function webGLStart() {
