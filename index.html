@@ -10,7 +10,7 @@
   precision mediump float;
 
   const bool PERF_DEBUG = false;
-  const float NUMBER_OF_SCENES = 3.0;
+  const float NUMBER_OF_SCENES = 2.0;
   const float MAX_DISTANCE = 150.0;
   const float EPSILON = 0.1;
   const float PI = 3.14159265359;
@@ -68,6 +68,13 @@
                   0.0,                                0.0,                                0.0,                                1.0);
   }
 
+  vec3 rotate(vec3 vec, mat4 rmat){
+    vec4 vf = vec4(vec, 0.0);
+    vf = rmat * vf;
+    return vec3(vf[0], vf[1], vf[2]);
+  }
+
+
   float intersectReflectionPlane(vec3 p, vec3 ray){
     // dot the plane normal with the ray direction
     float denom = dot(ray, vec3(1.0, 0.0, 0.0));
@@ -96,6 +103,12 @@
     } else {
       return baseOrigCube(modP, hdim);
     }
+  }
+
+  // drad is the radius of the tube, trad is the radius of the doughnut
+  float torus(vec3 p, vec3 orig, float drad, float trad){
+    vec2 q = vec2(length(p.xz) - trad, p[2]);
+    return length(q) - drad;
   }
 
   // Combination operators
@@ -158,24 +171,7 @@
   }
 
   float sDist3(vec3 p){
-    float sdist = 11.0;
-    float srad = 13.0;
-    vec4 np1 = vec4(p, 0.0);
-    mat4 rotmat = rotationMatrix(vec3(0.0, 0.0, 1.0), 0.01*t);
-    np1 = np1 * rotmat;
-    vec3 npp1 = vec3(np1[0], np1[1], np1[2]);
-    float ring1 = cSmooth(sphere(npp1, vec3(sdist), srad), sphere(npp1, vec3(-sdist), srad), 0.15);
-    np1 = np1 * rotmat;
-    npp1 = vec3(np1[0], np1[1], np1[2]);
-    sdist = 21.0;
-    srad = 7.0;
-    float ring2 = min(sphere(npp1, vec3(sdist), srad), sphere(npp1, vec3(-sdist), srad));
-    np1 = rotmat * np1;
-    npp1 = vec3(np1[0], np1[1], np1[2]);
-    sdist = 8.0;
-    srad = 1.0;
-    ring2 = cSmooth(ring2, min(sphere(npp1, vec3(sdist), srad), sphere(npp1, vec3(-sdist), srad)), 0.2);
-    return cSmooth(ring1, ring2, 0.1);
+    return torus(p, vec3(0.0), 6.0, 30.0);
   }
 
   float sDist(vec3 p){
