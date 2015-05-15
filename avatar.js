@@ -1,7 +1,7 @@
 var animInProg = true;
 var animSecondPhase = false;
 var assetsPath = "assets/";
-var frameIncrement = 0.1;//1.2;
+var frameIncrement = 1.2;
 var scene = 0.0;
 var changeScene = false;
 // var sceneTransitionSpeed = 2.0; // skip transitions
