@@ -4,7 +4,17 @@ var assetsPath = "assets/";
 var frameIncrement = 1.2;
 var scene = 0.0;
 var changeScene = false;
-// var sceneTransitionSpeed = 2.0; // skip transitions
+
+function updateAvatarReflection(avatar){
+	avatar.onload = function(){
+		updateReflection(avatar); // call to initGL.js
+	}
+}
+
+function displayFrame(avatar, frameName){
+	updateAvatarReflection(avatar);
+	avatar.src = frameName;
+}
 
 function animateAvatar(){
 	var avatar = document.getElementById("landingPageAvatar");
@@ -30,9 +40,8 @@ function setupForClap(avatar){
 }
 
 function iter_setupForClap(avatar, frame){
-	updateReflection(avatar);
 	if(frame <= 3){
-		avatar.src = assetsPath + "avatar_clap0" + frame + ".png";
+		displayFrame(avatar, assetsPath + "avatar_clap0" + frame + ".png");
 		setTimeout(function(){
 			iter_setupForClap(avatar, frame+1);
 		}, 200);
@@ -40,9 +49,10 @@ function iter_setupForClap(avatar, frame){
 }
 
 function doClap(avatar, numberOfClaps){
-	avatar.src = assetsPath + "avatar_clap04.png";
+	updateAvatarReflection(avatar);
+	displayFrame(avatar, assetsPath + "avatar_clap04.png");
 	setTimeout(function(){
-		avatar.src = assetsPath + "avatar_clap03.png";
+		displayFrame(avatar, assetsPath + "avatar_clap03.png");
 	}, 150);
 	if(numberOfClaps > 1){
 		setTimeout(function(){
@@ -77,7 +87,7 @@ function returnToIdle(avatar){
 
 function iter_returnToIdle(avatar, frame){
 	if(frame >= 0){
-		avatar.src = assetsPath + "avatar_clap0" + frame + ".png";
+		displayFrame(avatar, assetsPath + "avatar_clap0" + frame + ".png");
 		setTimeout(function(){
 			iter_returnToIdle(avatar, frame-1);
 		}, 100);
@@ -91,16 +101,16 @@ function iter_returnToIdle(avatar, frame){
 
 function blink(avatar){
 	if(!animInProg){
-		avatar.src = "assets/avatar_idle_blink.png";
+		displayFrame(avatar, "assets/avatar_idle_blink.png");
 		setTimeout(function(){
-			if(!animInProg) avatar.src = "assets/avatar_idle.png";
+			if(!animInProg) displayFrame(avatar, "assets/avatar_idle.png");
 		}, 100);
 		if(Math.random() > 0.2){
 			setTimeout(function(){
-				if(!animInProg) avatar.src = "assets/avatar_idle_blink.png";
+				if(!animInProg) displayFrame(avatar, "assets/avatar_idle_blink.png");
 			}, 300);
 			setTimeout(function(){
-				if(!animInProg) avatar.src = "assets/avatar_idle.png";
+				if(!animInProg) displayFrame(avatar, "assets/avatar_idle.png");
 			}, 430);
 		}
 	}
