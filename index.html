@@ -8,12 +8,13 @@
 
 <script id="shader-fs" type="x-shader/x-fragment">
   precision mediump float;
+  precision mediump int;
 
   const bool PERF_DEBUG = false;
   const float NUMBER_OF_SCENES = 2.0;
   const float MAX_DISTANCE = 150.0;
   const float IMAGE_WIDTH = 400.0;
-  const float EPSILON = 0.1;
+  const float EPSILON = 0.2;
   const float PI = 3.14159265359;
   const int MAX_ITERATIONS = 65000; // ints on mobile go span -2^16, 2^16
   const vec3 light1 = vec3(-300.0, 200.0, -1035.0);
@@ -33,6 +34,10 @@
   const vec3 camUp = vec3(0.0, 1.0, 0.0);
 
   float camOrbitSpeed = 20.0;
+
+  float sDistCalls = 0.0;
+  float shortestDistance = 100.0;
+  bool surfaceHit = false; // keeps track of whether or not we've hit the surface at least once
 
   // Inputs
   varying vec2 uv;
@@ -73,6 +78,10 @@
     vec4 vf = vec4(vec, 0.0);
     vf = rmat * vf;
     return vec3(vf[0], vf[1], vf[2]);
+  }
+
+  float snoise(in vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
   }
 
 
@@ -127,7 +136,7 @@
   }
 
   // Scene distance functions
-  float sDist1(vec3 p){
+  float sDist2(vec3 p){
     float base = sphere(p, vec3(0.0, 0.0, 0.0), 25.0 + 5.0*sin(0.007*t+0.35));
     float s1 = sphere(p, vec3(7.0*cos(0.05*t)+11.3, -9.0, 4.0*sin(0.7+0.08*t)+4.0), 19.0);
     float s2 = sphere(p, vec3(12.0*sin(0.018*t)+11.3, 14.0, 4.0*sin(0.2+0.032*t)+4.0), 15.0);
@@ -150,7 +159,7 @@
     return blob;
   }
 
-  float sDist2(vec3 p){
+  float sDist1(vec3 p){
     p = 0.8 * p;
     float nt = 0.01*t;
     vec4 np1 = vec4(p, 0.0);
@@ -176,9 +185,10 @@
   }
 
   float sDist(vec3 p){
+    sDistCalls += 1.0;
 
 
-    return sDist2(p);
+    // return sDist2(p);
 
 
     float cscene = mod(currentScene, NUMBER_OF_SCENES);
@@ -227,33 +237,35 @@
       return ambientMaterial + diffuse + specMaterial*pow(blinnTerm, shininess);
     }
   }
+
   vec3 blinnPhongShade(vec3 p, vec3 eye){
-    return blinnPhongShade(p, eye, light1);// + blinnPhongShade(p, eye, light2);
+    return blinnPhongShade(p, eye, light1);
   }
 
   // scene texture function
   vec3 sTexture(vec3 p){
-    float d = length(p + vec3(13.0*sin(0.01*t), -14.0*cos(0.009*t), sin(0.006*t)*8.0));
-    const float dRange = 28.0; // repeat pattern every 10 units
-    float range_min = 0.92 + (sin(0.02*t) -1.0)*0.1;
     const float range_max = 0.92;
+    float d = length(p + vec3(13.0*sin(0.01*t), -14.0*cos(0.009*t), sin(0.006*t)*8.0));
+    const float dRange = 28.0;
+    float range_min = 0.92 + (sin(0.02*t) -1.0)*0.1;
+    
     float range_span = range_max - range_min;
-    const float n3 = 1.0/3.0;
     float x = mod(d, dRange) / dRange;
     vec3 rainbow = vec3(0.0, 0.0, 0.0);
     for(int i = 0; i < 3; i++){
       rainbow[i] = mix(range_span, 0.0, min(x*3.0, (1.0-x)*3.0, 1.0));
-      x = mod(x + n3, 1.0);
+      x = mod(x + 0.3333333, 1.0);
     }
     return rainbow+vec3(range_min);
   }
 
   vec4 traceRay(vec3 pixel, vec3 ray){
-    float d = 0.0;
-    float delta = 0.0;
-    for(int i = 0; i < MAX_ITERATIONS; i++){ // can't use while loops in WebGL shaders
+    float d = 0.0;     // the current distance the ray has travelled
+    float delta = 0.0; // the distance between the current position and the nearest surface
+    for(int i = 0; i < MAX_ITERATIONS; i++){ // can't use while loops in WebGL shaders :'(
       delta = sDist(pixel + d*ray);
-      if(delta <= EPSILON){
+      if(delta <= EPSILON){ // we have a hit!
+        surfaceHit = true;
         vec3 inter = pixel + d*ray;
         baseMaterial = sTexture(inter);
         vec3 refRay = reflect(normalize(inter - pixel), sNormal(inter));
@@ -272,31 +284,97 @@
             }
           }
         }
-        return vec4(pow(blinnPhongShade(pixel + d*ray, camPos), vec3(1.0/2.2)), 1.0);
+        return vec4(blinnPhongShade(pixel + d*ray, camPos), 1.0);
       }
       d = d + delta;
       if(d >= MAX_DISTANCE){
         break;
       }
     }
+    // no hits, return white background
     return vec4(1.0, 1.0, 1.0, 0.0);
   }
 
   void main(void) {
+    // Give this an initial value since we increment it in the loop
     gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
-    // Lazy bum SSAA, doesn't even take care of the jaggies >:(
-    for(float u = 0.0; u < 3.9; u += 1.0){ // sketch counter for arithmetic
-      for(float v = 0.0; v < 3.9; v += 1.0){
-        float uoffset = 0.5*(u/2.0 - 1.0)/IMAGE_WIDTH;
-        float voffset = 0.5*(v/2.0 - 1.0)/IMAGE_WIDTH;
-        vec2 adjUV = (uv+vec2(uoffset, voffset))*2.0 - vec2(1.0, 1.0);
-        vec3 nright = normalize(cross(camUp, camDir));
-        vec3 nup = normalize(cross(nright, camDir));
-        vec3 dir = normalize(camDir);
-        vec3 pixel = camPos + dir + nright*adjUV[0]*ulen + nup*adjUV[1]*vlen;
-        vec3 ray = normalize(pixel - camPos);
-        gl_FragColor += (1.0 / 16.0) * traceRay(pixel, ray);
+
+    const int RAYS_PER_PIXEL = 10;    // total number of rays cast in full AA scenario (edges)
+    const int MISS_THRESHOLD = 2;     // number of surface misses before killing the loop
+    const int THRESHOLD_TEST = 3;     // number of samples to take for col threshold test
+    const float COL_THRESHOLD = 0.70; // if the deltas between min and max vals for r+g+b channels
+                                      // exceed this value, we've detected an edge!
+
+    // sensible init vals...
+    float minR = 1.0;
+    float minG = 1.0;
+    float minB = 1.0;
+    float maxR = 0.0;
+    float maxG = 0.0;
+    float maxB = 0.0;
+
+    float uoffset;
+    float voffset;
+    vec2 adjUV;
+    vec3 nright;
+    vec3 nup;
+    vec3 dir;
+    vec3 ray;
+
+    for(int i = 0; i < RAYS_PER_PIXEL; i++){ // stochastic AA
+      vec2 co = (float(i)+t) * uv;
+      float r1 = snoise(co);
+      float r2 = snoise(co * 2.240013);
+
+      // the >1 factor potentially shoots rays outside of the pixel
+      // this adds a little bit of noise to edges and helps reduce
+      // aliasing artifacts while keeping the performance cost reasonable
+      uoffset = 1.35*(r1-0.5)/IMAGE_WIDTH;
+      voffset = 1.35*(r2-0.5)/IMAGE_WIDTH;
+      adjUV = (uv+vec2(uoffset, voffset))*2.0 - vec2(1.0, 1.0);
+
+      // camera ray + pixel calculations
+      nright = normalize(cross(camUp, camDir));
+      nup = normalize(cross(nright, camDir));
+      dir = normalize(camDir);
+      vec3 pixel = camPos + dir + nright*adjUV[0]*ulen + nup*adjUV[1]*vlen;
+      vec3 ray = normalize(pixel - camPos);
+
+      // FIRE THE MISSILES!
+      vec4 res = traceRay(pixel, ray);
+
+      // bookkeeping to detect potential edges for AA
+      minR = min(minR, res[0]);
+      minG = min(minG, res[1]);
+      minB = min(minB, res[2]);
+      maxR = max(maxR, res[0]);
+      maxG = max(maxG, res[1]);
+      maxB = max(maxB, res[2]);
+      
+      if(!surfaceHit && i >= MISS_THRESHOLD){
+        gl_FragColor = vec4(float(RAYS_PER_PIXEL)); // white bg
+        break;
       }
+      
+      if(i == THRESHOLD_TEST && ((maxR+maxG+maxB) - (minR+minG+minB)) <= COL_THRESHOLD){
+        gl_FragColor = res * float(RAYS_PER_PIXEL);
+        break;
+      }
+      
+      gl_FragColor += res;
+    }
+
+    // average out the total AA rays and apply gamma correction
+    gl_FragColor *= (1.0/float(RAYS_PER_PIXEL));
+    gl_FragColor = pow(gl_FragColor, vec4(1.0/2.2));
+
+    if(PERF_DEBUG){
+      const float dcpc = 70.0; // distance calls per channel
+      float r = min(max(0.0, (sDistCalls-2.0*dcpc)/(2.0*dcpc)), 1.0);
+      float g = min(max(0.0, (sDistCalls-dcpc)/dcpc), 1.0);
+      float b = min(sDistCalls/dcpc, 1.0) - g;
+      g = g - r;
+      gl_FragColor = vec4(r, g, b, 1.0);
     }
   }
 </script>

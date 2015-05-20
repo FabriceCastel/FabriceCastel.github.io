@@ -30,6 +30,7 @@ function setupForClap(avatar){
 }
 
 function iter_setupForClap(avatar, frame){
+	updateReflection(avatar);
 	if(frame <= 3){
 		avatar.src = assetsPath + "avatar_clap0" + frame + ".png";
 		setTimeout(function(){

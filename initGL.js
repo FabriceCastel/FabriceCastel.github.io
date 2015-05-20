@@ -3,10 +3,11 @@ var frame = 0.0;
 
 function initGL(canvas) {
     try {
-        gl = canvas.getContext("experimental-webgl");
+        gl = canvas.getContext("webgl");
         gl.viewportWidth = canvas.width;
         gl.viewportHeight = canvas.height;
     } catch (e) {
+        alert("Failed to initialise WebGL. Exception thrown in initGL(): " + e);
     }
     if (!gl) {
         alert("Failed to initialise WebGL");
@@ -117,4 +118,7 @@ function webGLStart() {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
     drawScene();
+}
+function updateReflection(image){
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 }
