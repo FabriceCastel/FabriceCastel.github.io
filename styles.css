@@ -70,9 +70,8 @@ a:hover {
 	border-style: solid;
 }
 
-/* original dims: 20x32 */
 .avatar {
-	width: 140px;
+	width: 224px;
 	height: 224px;
 	image-rendering: optimizeSpeed;             /* Older versions of FF          */
 	image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
@@ -86,6 +85,7 @@ a:hover {
 	position: relative;
 	left: 50%;
 	margin-left: -370px;
+	z-index: -1;
 }
 
 #landingPageAvatarContainer {
@@ -97,11 +97,11 @@ a:hover {
 }
 
 .fadein {
-	-webkit-animation: fadein 3s; /* Safari, Chrome and Opera > 12.1 */
-       -moz-animation: fadein 3s; /* Firefox < 16 */
-        -ms-animation: fadein 3s; /* Internet Explorer */
-         -o-animation: fadein 3s; /* Opera < 12.1 */
-            animation: fadein 3s;
+	-webkit-animation: fadein 2s; /* Safari, Chrome and Opera > 12.1 */
+       -moz-animation: fadein 2s; /* Firefox < 16 */
+        -ms-animation: fadein 2s; /* Internet Explorer */
+         -o-animation: fadein 2s; /* Opera < 12.1 */
+            animation: fadein 2s;
 }
 
 @keyframes fadein {

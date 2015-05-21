@@ -12,7 +12,9 @@ function updateAvatarReflection(avatar){
 }
 
 function displayFrame(avatar, frameName){
-	updateAvatarReflection(avatar);
+	if(document.location.hostname.length < 2){
+		updateAvatarReflection(avatar);
+	}
 	avatar.src = frameName;
 }
 
@@ -49,7 +51,6 @@ function iter_setupForClap(avatar, frame){
 }
 
 function doClap(avatar, numberOfClaps){
-	updateAvatarReflection(avatar);
 	displayFrame(avatar, assetsPath + "avatar_clap04.png");
 	setTimeout(function(){
 		displayFrame(avatar, assetsPath + "avatar_clap03.png");
