@@ -85,7 +85,6 @@ a:hover {
 	position: relative;
 	left: 50%;
 	margin-left: -370px;
-	z-index: -1;
 }
 
 #landingPageAvatarContainer {
@@ -94,6 +93,7 @@ a:hover {
 	width: 100%;
 	margin-top: 180px;
 	height: 250px;
+	z-index: -1;
 }
 
 .fadein {

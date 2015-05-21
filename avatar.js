@@ -12,9 +12,8 @@ function updateAvatarReflection(avatar){
 }
 
 function displayFrame(avatar, frameName){
-	if(document.location.hostname.length < 2){
+	if(document.location.host != "") // avoid cross-doman GL texture exception in local testing
 		updateAvatarReflection(avatar);
-	}
 	avatar.src = frameName;
 }
 
