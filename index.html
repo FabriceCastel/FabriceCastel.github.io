@@ -11,8 +11,8 @@
   precision mediump int;
 
   const bool PERF_DEBUG = false;
-  const float NUMBER_OF_SCENES = 2.0;
-  const float MAX_DISTANCE = 150.0;
+  const float NUMBER_OF_SCENES = 3.0;
+  const float MAX_DISTANCE = 170.0;
   const float IMAGE_WIDTH = 400.0;
   const float EPSILON = 0.2;
   const float PI = 3.14159265359;
@@ -115,10 +115,9 @@
     }
   }
 
-  // drad is the radius of the tube, trad is the radius of the doughnut
   float torus(vec3 p, vec3 orig, float drad, float trad){
-    vec2 q = vec2(length(p.xz) - trad, p[2]);
-    return length(q) - drad;
+    vec2 q = vec2(length(p.xz) - drad, p[1]);
+    return length(q) - trad;
   }
 
   // Combination operators
@@ -170,26 +169,28 @@
     np2 = np1 * rotationMatrix(vec3(1.0, 0.0, 0.0), -nt*0.9);
     np3 = np1 * rotationMatrix(vec3(0.0, 0.4, 1.0), nt*1.24);
     np4 = np4 * rotationMatrix(vec3(-0.6, 0.7, 0.1), nt*1.67);
-    vec3 npp1 = vec3(np1[0], np1[1], np1[2]);
-    vec3 npp2 = vec3(np2[0], np2[1], np2[2]);
-    vec3 npp3 = vec3(np3[0], np3[1], np3[2]);
-    vec3 npp4 = vec3(np4[0], np4[1], np3[2]);
-    return max(cube(npp3, vec3(0.0, 0.0, 0.0), 40.0), 
-      min(cube(npp1, vec3(0.0, 0.0, 0.0), 40.0),
-        cube(npp2, vec3(0.0, 0.0, 0.0), 40.0),
-        cube(npp4, vec3(0.0, 0.0, 0.0), 36.0)));
+    return max(cube(np3.xyz, vec3(0.0, 0.0, 0.0), 40.0), 
+      min(cube(np1.xyz, vec3(0.0, 0.0, 0.0), 40.0),
+        cube(np2.xyz, vec3(0.0, 0.0, 0.0), 40.0),
+        cube(np4.xyz, vec3(0.0, 0.0, 0.0), 36.0)));
   }
 
   float sDist3(vec3 p){
-    return torus(p, vec3(0.0), 6.0, 30.0);
+    float nt = 0.03*t;
+    vec4 p1 = vec4(p, 0.0) * rotationMatrix(vec3(1.0, 1.0, 0.0), 0.3) * rotationMatrix(vec3(0.0,0.0,1.0), nt);
+    vec4 p2 = vec4(p, 0.0) * rotationMatrix(vec3(0.3, 1.0, 0.6), 0.8) * rotationMatrix(vec3(1.0,0.0,0.0), 0.7*nt);
+    vec4 p3 = vec4(p, 0.0) * rotationMatrix(vec3(0.3, 0.0, 0.6), 0.8) * rotationMatrix(vec3(1.0,0.0,0.0), -0.6*nt);
+    vec4 p4 = vec4(p, 0.0) * rotationMatrix(vec3(1.3, 0.9, 0.6), -0.8) * rotationMatrix(vec3(1.0,0.0,1.0), 0.6*nt);
+    return min(
+      min(torus(p1.xyz, vec3(0.0), 30.0, 1.0),
+        torus(p2.xyz, vec3(0.0), 35.0, 1.0),
+        torus(p3.xyz, vec3(0.0), 25.0, 1.0),
+        torus(p4.xyz, vec3(0.0), 32.5, 1.0)),
+      sphere(p, vec3(0.0), 20.0));
   }
 
   float sDist(vec3 p){
     sDistCalls += 1.0;
-
-
-    // return sDist2(p);
-
 
     float cscene = mod(currentScene, NUMBER_OF_SCENES);
     if(cscene == 0.0)
@@ -369,7 +370,7 @@
     gl_FragColor = pow(gl_FragColor, vec4(1.0/2.2));
 
     if(PERF_DEBUG){
-      const float dcpc = 70.0; // distance calls per channel
+      const float dcpc = 40.0; // distance calls per channel
       float r = min(max(0.0, (sDistCalls-2.0*dcpc)/(2.0*dcpc)), 1.0);
       float g = min(max(0.0, (sDistCalls-dcpc)/dcpc), 1.0);
       float b = min(sDistCalls/dcpc, 1.0) - g;
