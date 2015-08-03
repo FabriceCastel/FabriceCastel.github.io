@@ -42,6 +42,14 @@ ul {
 	padding-left: 0px;
 }
 
+ol {
+	font-family: monospace;
+	margin-left: auto;
+	margin-right: auto;
+	text-align: left;
+	padding-left: 27px;
+}
+
 code {
 	text-align: left;
 	width: 100%;
