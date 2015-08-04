@@ -24,6 +24,8 @@
 
 <p>Now click on the little play arrow at the bottom left of the editor to compile and run your code. The rainbow gradient should now be replaced by a lovely uniform shade of purple-ish pink-ish something. Why? How? <b>WHAT IS THIS VOODOO MAGIC?</b></p>
 
+<img src="pink.png" class="outlinedImage"/>
+
 <p>The code you've entered gets run on every pixel of the image in order to determine their individual final colour; this is what will enable us to generate images as crazy and complex as we like. The fragColor variable represents that specific pixel's colour - so, what this little snippet of code is doing is telling every pixel "aye bro, your colour is going to be vec4(1.0,0.0,1.0,1.0)." That's nice and all but... what does this vec4 thing even mean? vec4 itself doesn't mean anything special, it's a vector that holds 4 elements. Here, we are using these four elements to represent a colour using the RBGA format. The first number represents the amount of red in the colour, ranging from none (0.0) to fully red (1.0), the second and third numbers represent the amount of green and blue, and the last element represents the alpha - the transparency - of the colour, with 0.0 being fully transparent and 1.0 being fully opaque. Try changing around these four values in your code to see what sort of colours you can come up with! If you're unfamiliar with colour encoding this will give you a better sense of how these numbers interact. Do remember that these four numbers need to be in the [0-1] range. Think of them as percentages.</p>
 
 <p>I'm sure you're in awe right now at this magestic shade of pink, but let's carry on over to using the UV coordinates. UV coordinates, you say? These represent the pixel's position in the image in an (u,v) coordinate system. The bottom left pixel will sit at (0.0,0.0) and the top right will be at (1.0,1.0). All the other pixels fall somewhere in-between. Let's use this to make the image go from black on the left to green on the right!</p>
@@ -34,6 +36,8 @@
   float green = uv.x;
   fragColor = vec4(0.0, green, 0.0, 1.0);
 }</code></pre>
+
+<img src="gradient.png" class="outlinedImage"/>
 
 <p>Let's break this down line by line. The first one calculates the UV coordinates for the current pixel. Here, fragCoord and iResolution are variables given to us by the program running the shader. fragCoord contains the (x,y) coordinates of the pixel on the screen, so if you were looking at the pixel in the middle of a 100x100 image, its coordinates would be (50,50). The iResolution variable holds the width and height of the image you're generating [note: iResolution is actually a vec3, but we only care about the first two components, namely width and height]. Calling iResolution.xy returns a vec2 containing the x and y elements of the iResolution vector. It should be obvious enough that dividing the pixel's position on the window (eg. (50,50)) by the total size of the window (eg. (100,100)) will give you the pixe's corresponding coordinates in the UV system.</p>
 
