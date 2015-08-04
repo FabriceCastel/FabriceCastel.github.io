@@ -13,6 +13,10 @@
   <h3>August 3rd 2015</h3>
   <h3><a href="../../blog.html">(Take me back to the Blog section!)</a></h3>
 
+  <p><b>EDIT</b> (11:43AM August 4th 2015) - A note about the name of this blog post. The technique discussed here is a raymarching algorithm spawned by a 1996 paper by John C. Hart, <i>Sphere Tracing: A Geometric Method for the Antialiased Ray Tracing of Implicit Surfaces</i>, not a raytracing algorithm. The paper is definitely worth a read if you would like to get a better in-depth understanding of the material covered here. Credit to /u/Madsy9 on Reddit for pointing this out and for the following quote explaining the difference: <i>"Raytracing uses intersection checks (usually parametric functions) to find the intersection point, which requires no iteration at all. Meanwhile, raymarching is an iterative process where you step along the ray by using a distance function. Unlike raytracing, raymarching can render objects that can't be defined properly as a parametric function (no intersection test is known), and for objects without boundaries such as fractals."</i></p>
+
+  <hr>
+
   <p>This is meant to be a soft introcution to the topic of sphere tracing, which you should be able to follow with little to no prior knowledge in graphics programming. I'll do my best to explain the theory behind the code as we go along so as to make this more than a copy-paste fiesta with no real understanding of what's going on under the hood. I'll be using shadertoy, coding the shader in GLSL so feel free to open up a new browser tab at <a href="https://www.shadertoy.com/new">https://www.shadertoy.com/new</a> as a starting point and code along with me :)</p>
 
   <p>In your new shadertoy shader, you should be greeted by an ondulating multicoloured gradient. You should also see a text editor containing the code for this shader either below it or off to the side. Delete the body of the mainImage() function and replace it like so:</p>
