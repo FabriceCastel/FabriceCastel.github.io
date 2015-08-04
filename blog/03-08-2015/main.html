@@ -75,9 +75,9 @@ vec3 cameraUp = vec3(0.0, 1.0, 0.0);</code></pre>
   <li>Compute the normalized vector pointint up (as seen by the camera) in case the 'up' vector wasn't 100% accurate/normalized</li>
   <li>Compute the normalized direction vector</li>
   <li>Add the normalized direction vector to the ray's origin and call that new point A. If you were to refer back to the thought experiment with the plastic grid held out on front of you, the point A would lie in the middle of that page.</li>
-  <li>Shift A to the right or left along the transparent grid by adding the previously computed normalized 'right' vector, multiplied by some factor of the current pixe's camUV
+  <li>Shift A to the right or left along the transparent grid by adding the previously computed normalized 'right' vector, multiplied by some factor of the current pixe's camUV.x
   </li>
-  <li>Ditto in shifting A in the 'up' direction
+  <li>Ditto in shifting A in the 'up' direction with camUV.y
   <li>If you take the difference between A, which should be the correct 'pixel' on your transparent grid - and your camera's origin, that will give you the ray's direction</li>
   </ol>
 
