@@ -121,7 +121,7 @@ vec3 cameraUp = vec3(0.0, 1.0, 0.0);</code></pre>
 <li>Go back to step 1 and repeat until your friend tells you a distance too short for you to even move forward witout bumping your nose into the tree</li>
 </ol>
 
-<p>The correspondence between this little game and our sphere tracer should be faily transparent; you're the ray, your friend is the distance function and the trees in the forests are the surface of your virtual 3D world. As you can see, the algorithm itself is pretty simple. Let's write it up:</p>
+<p>The correspondence between this little game and our sphere tracer should be faily transparent; you're the ray, your friend is the distance function and the trees in the forests is the collection of surfaces defined in your virtual 3D world. As you can see, the algorithm itself is pretty simple. Let's write it up:</p>
 
 <pre><code>bool intersectsWithWorld(vec3 p, vec3 dir){
   float dist = 0.0;
