@@ -61,9 +61,9 @@
 
 <p>Let's define these three bits of information:</p>
 
-<pre><code>vec3 cameraPosition = vec3(0.0, 0.0, 10.0);
-vec3 cameraDirection = vec3(0.0, 0.0, -1.0);
-vec3 cameraUp = vec3(0.0, 1.0, 0.0);</code></pre>
+<pre><code>const vec3 cameraPosition = vec3(0.0, 0.0, 10.0);
+const vec3 cameraDirection = vec3(0.0, 0.0, -1.0);
+const vec3 cameraUp = vec3(0.0, 1.0, 0.0);</code></pre>
 
 <p>For each pixel in our window we want to cast a ray out towards the scene and find out if it hits a surface or not. But um... how exactly do we "cast" these rays?</p>
 
@@ -76,8 +76,6 @@ vec3 cameraUp = vec3(0.0, 1.0, 0.0);</code></pre>
 <ol>
   <li>Compute camUV, an equivalent to the UV coordinates that range from -1.0 to 1.0 rather than 0.0 to 1.0
   <li>Compute the normalized vector pointing out towards the right (as seen by the camera)</li>
-  <li>Compute the normalized vector pointint up (as seen by the camera) in case the 'up' vector wasn't 100% accurate/normalized</li>
-  <li>Compute the normalized direction vector</li>
   <li>Add the normalized direction vector to the ray's origin and call that new point A. If you were to refer back to the thought experiment with the plastic grid held out on front of you, the point A would lie in the middle of that page.</li>
   <li>Shift A to the right or left along the transparent grid by adding the previously computed normalized 'right' vector, multiplied by some factor of the current pixe's camUV.x
   </li>
@@ -85,9 +83,9 @@ vec3 cameraUp = vec3(0.0, 1.0, 0.0);</code></pre>
   <li>If you take the difference between A, which should be the correct 'pixel' on your transparent grid - and your camera's origin, that will give you the ray's direction</li>
   </ol>
 
-<pre><code>float PI = 3.14159265359;
-float fov = 50.0;
-float fovx = PI * fov / 360.0;
+<pre><code>const float PI = 3.14159265359;
+const float fov = 50.0;
+const float fovx = PI * fov / 360.0;
 float fovy = fovx * iResolution.y/iResolution.x;
 float ulen = tan(fovx);
 float vlen = tan(fovy);
@@ -96,11 +94,10 @@ vec2 uv = fragCoord/iResolution.xy;
 // generate the ray for this pixel
 vec2 camUV = uv*2.0 - vec2(1.0, 1.0);
 vec3 nright = normalize(cross(cameraUp, cameraDirection));
-vec3 nup = normalize(cross(nright, cameraDirection));
-vec3 ndir = normalize(cameraDirection);
-vec3 pixel = cameraPosition + ndir + nright*camUV.x*ulen + nup*camUV.y*vlen;
+vec3 pixel = cameraPosition + cameraDirection + nright*camUV.x*ulen + cameraUp*camUV.y*vlen;
 vec3 rayDirection = normalize(pixel - cameraPosition);</code></pre>
 
+<p>Note that this code assumes for the camera 'up' and direction vectors are already normalized. If not for that, you could end up with unexpected results.</p>
 
 <p>Writing out all of this has been exhausting, but we're so close to tangible results. So. Close.</p>
 
@@ -128,7 +125,7 @@ vec3 rayDirection = normalize(pixel - cameraPosition);</code></pre>
 
 <pre><code>bool intersectsWithWorld(vec3 p, vec3 dir){
   float dist = 0.0;
-  for(int i = 0; i < 1000; i++){
+  for(int i = 0; i < 20; i++){
     float nearest = distanceToNearestSurface(p + dir*dist);
     if(nearest < 0.01) return true;
     dist += nearest;
@@ -136,13 +133,24 @@ vec3 rayDirection = normalize(pixel - cameraPosition);</code></pre>
   return false;
 }</code></pre>
 
-<p>Some things to note here are that while loops are not allowed in GLSL, so instead we cap the number of iterations at 1000. This is suitable for this little example but in general, you'll want to adjust that value to balance out computational costs and accurate scene rendering. Another thing to note is that you would normally add an extra conditional check inside the for loop to see if your ray has traveled past a predetermined maximum distance, because you might not care about rendering your world beyond a certain distance (it's a fairly standard way of keeping the computational costs in check). Lastly, notice that the 0.01 value is how close to a surface our rays have to get before saying "okay okay, that's close enough I've touched the tree." This value can also be adjusted depending on the level of detail in your scene and computational power available. The higher that value, the more "round" your surfaces will look. In this blog post it's not really demonstrable because we'll be rendering a sphere, which is about as round as it gets - but if you chose to render a cube instead, playing around with that value would round off the edges to varying degrees. In general, you want to keep this value as low as possible to render the geometry accurately.</p>
+<p>Some things to note here are that while loops are not allowed in GLSL, so instead we cap the number of iterations at 20. This is suitable for this little example but in general, you'll want to adjust that value to balance out computational costs and accurate scene rendering. Another thing to note is that you would normally add an extra conditional check inside the for loop to see if your ray has traveled past a predetermined maximum distance, because you might not care about rendering your world beyond a certain distance (it's a fairly standard way of keeping the computational costs in check). Lastly, notice that the 0.01 value is how close to a surface our rays have to get before saying "okay okay, that's close enough I've touched the tree." This value can also be adjusted depending on the level of detail in your scene and computational power available. The higher that value, the more "round" your surfaces will look. In this blog post it's not really demonstrable because we'll be rendering a sphere, which is about as round as it gets - but if you chose to render a cube instead, playing around with that value would round off the edges to varying degrees. In general, you want to keep this value as low as possible to render the geometry accurately.</p>
 
 <p>Now, putting it all together, this is the shader code I wound up with:</p>
 
-<pre><code>vec3 cameraPosition = vec3(0.0, 0.0, 10.0);
-vec3 cameraDirection = vec3(0.0, 0.0, -1.0);
-vec3 cameraUp = vec3(0.0, 1.0, 0.0);
+<pre><code>// camera attributes
+// cameraDirection and cameraUp MUST be normalized
+// (ie. their length must be equal to 1)
+const vec3 cameraPosition = vec3(0.0, 0.0, 10.0);
+const vec3 cameraDirection = vec3(0.0, 0.0, -1.0);
+const vec3 cameraUp = vec3(0.0, 1.0, 0.0);
+
+// ray computation vars
+const float PI = 3.14159265359;
+const float fov = 50.0;
+const float fovx = PI * fov / 360.0;
+float fovy = fovx * iResolution.y/iResolution.x;
+float ulen = tan(fovx);
+float vlen = tan(fovy);
 
 float distanceToNearestSurface(vec3 p){
     return length(p) - 1.0;
@@ -150,7 +158,7 @@ float distanceToNearestSurface(vec3 p){
 
 bool intersectsWithWorld(vec3 p, vec3 dir){
   float dist = 0.0;
-  for(int i = 0; i < 1000; i++){
+  for(int i = 0; i < 20; i++){
     float nearest = distanceToNearestSurface(p + dir*dist);
     if(nearest < 0.01) return true;
     dist += nearest;
@@ -160,27 +168,20 @@ bool intersectsWithWorld(vec3 p, vec3 dir){
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-  float PI = 3.14159265359;
-  float fov = 50.0;
-  float fovx = PI * fov / 360.0;
-  float fovy = fovx * iResolution.y/iResolution.x;
-  float ulen = tan(fovx);
-  float vlen = tan(fovy);
-  vec2 uv = fragCoord/iResolution.xy;
-
-  // generate the ray for this pixel
-  vec2 camUV = uv*2.0 - vec2(1.0, 1.0);
-  vec3 nright = normalize(cross(cameraUp, cameraDirection));
-  vec3 nup = normalize(cross(nright, cameraDirection));
-  vec3 ndir = normalize(cameraDirection);
-  vec3 pixel = cameraPosition + ndir + nright*camUV.x*ulen + nup*camUV.y*vlen;
-  vec3 rayDirection = normalize(pixel - cameraPosition);
+    vec2 uv = fragCoord/iResolution.xy;
   
-  float collidedWithWorld = 0.0;
-  if(intersectsWithWorld(cameraPosition, rayDirection))
-      collidedWithWorld = 1.0;
-  
-  fragColor = vec4(collidedWithWorld, 0.0, 0.0, 1.0);
+    // generate the ray for this pixel
+    vec2 camUV = uv*2.0 - vec2(1.0, 1.0);
+    vec3 nright = normalize(cross(cameraUp, cameraDirection));
+    vec3 pixel = cameraPosition + cameraDirection +
+                 nright*camUV.x*ulen + cameraUp*camUV.y*vlen;
+    vec3 rayDirection = normalize(pixel - cameraPosition);
+    
+    float collidedWithWorld = 0.0;
+    if(intersectsWithWorld(cameraPosition, rayDirection))
+        collidedWithWorld = 1.0;
+    
+    fragColor = vec4(collidedWithWorld, 0.0, 0.0, 1.0);
 }</code></pre>
 
 <p>You should see a black screen with a red circle in the middle. That red circle is the world you defined in your distance function - it's that 1.0 radius sphere at (0.0,0.0,0.0) :D</p>
