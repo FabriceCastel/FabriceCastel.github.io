@@ -39,7 +39,8 @@ ul {
 	margin-left: auto;
 	margin-right: auto;
 	text-align: center;
-	padding-left: 1.2em;
+	list-style: none;
+	padding: 0px;
 }
 
 ol {
@@ -48,7 +49,7 @@ ol {
 	margin-right: auto;
 	text-align: left;
 	padding: 0px;
-	list-style-position: inside;
+	padding-left: 2.1em;
 }
 
 pre {
