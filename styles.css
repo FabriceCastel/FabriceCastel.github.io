@@ -35,6 +35,7 @@ ul {
 	font-family: monospace;
 	font-size: 120%;
 	line-height: 180%;
+	list-style: none;
 	margin-left: auto;
 	margin-right: auto;
 	text-align: center;
