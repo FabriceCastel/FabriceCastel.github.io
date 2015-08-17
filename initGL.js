@@ -2,15 +2,19 @@ var gl;
 var frame = 0.0;
 
 function initGL(canvas) {
-    try {
-        gl = canvas.getContext("webgl");
-        gl.viewportWidth = canvas.width;
-        gl.viewportHeight = canvas.height;
-    } catch (e) {
-        alert("Failed to initialise WebGL. Exception thrown in initGL(): " + e);
-    }
-    if (!gl) {
-        alert("Failed to initialise WebGL");
+    var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    var isSafari = /Safari/i.test(navigator.userAgent) && !(/Chrome/i.test(navigator.userAgent));
+    if(!(isMobile || isSafari)) {
+        try {
+            gl = canvas.getContext("webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+            alert("Failed to initialise WebGL. Exception thrown in initGL(): " + e);
+        }
+        if (!gl) {
+            alert("Failed to initialise WebGL");
+        }
     }
 }
 function getShader(gl, id) {
