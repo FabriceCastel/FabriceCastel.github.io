@@ -35,11 +35,12 @@ ul {
 	font-family: monospace;
 	font-size: 120%;
 	line-height: 180%;
+	list-style: none;
 	margin-left: auto;
 	margin-right: auto;
 	text-align: center;
 	list-style: none;
-	padding-left: 0px;
+	padding: 0px;
 }
 
 ol {
@@ -47,7 +48,8 @@ ol {
 	margin-left: auto;
 	margin-right: auto;
 	text-align: left;
-	padding-left: 27px;
+	padding: 0px;
+	padding-left: 2.1em;
 }
 
 pre {
