@@ -14,16 +14,18 @@
   const float NUMBER_OF_SCENES = 3.0;
   const float MAX_DISTANCE = 170.0;
   const float IMAGE_WIDTH = 400.0;
-  const float EPSILON = 0.2;
+  const float EPSILON = 0.5;
   const float PI = 3.14159265359;
-  const int MAX_ITERATIONS = 100; // ints on mobile go span -2^16, 2^16
+  const int MAX_ITERATIONS = 20; // ints on mobile go span -2^16, 2^16
   const vec3 light1 = vec3(-300.0, 200.0, -1035.0);
   const vec3 light2 = vec3(-600.0, -200.0, -400.0);
   vec3 baseMaterial = vec3(0.92);
   const vec3 specMaterial = vec3(1.0);
   const vec3 ambientMaterial = vec3(0.04);
   const float shininess = 8000.0;
-  const int RAYS_PER_PIXEL = 10;    // total number of rays cast in full AA scenario (edges)
+
+  // DISABLE AA FOR NOW, exceeds hard lim of ops permitted per frag on most browsers
+  const int RAYS_PER_PIXEL = 1;    // total number of rays cast in full AA scenario (edges)
   const int MISS_THRESHOLD = 2;     // number of surface misses before killing the loop
   const int THRESHOLD_TEST = 3;     // number of samples to take for col threshold test
   const float COL_THRESHOLD = 0.70; // if the deltas between min and max vals for r+g+b channels
@@ -199,9 +201,9 @@
 
     float cscene = mod(currentScene, NUMBER_OF_SCENES);
     if(cscene == 0.0)
-      return sDist1(p);
-    else if(cscene <= 1.0)
       return sDist2(p);
+    else if(cscene <= 1.0)
+      return sDist1(p);
     else
       return sDist3(p);
   }
