@@ -1,0 +1,163 @@
+<html>
+
+<head>
+<title>f_castel</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+
+<body>
+<div class="blogContainer">
+  <h2>Sphere Tracing 102</h2>
+  <h3>September 6th 2015</h3>
+  <h3><a href="../../blog.html">(Take me back to the Blog section!)</a></h3>
+
+  <p>In this I'll be covering a very basic lighting model and animating the light source position. Let's pick up where we left off at the end of Sphere Tracing 101 with the following shader: <a href="https://www.shadertoy.com/view/4tsXzf">https://www.shadertoy.com/view/4tsXzf</a>.</p>
+
+  <p>So far, we've only been returning a boolean to indicate whether or not our ray had hit the sphere. In order to figure out how the light is going to interact with the sphere's surface, we're going to need more information about the surface at that point. Enter the surface normal! The normal is a vector "pointing" in the direction that the surface is facing at a specific point in space. In other words, the surface normal is a vector perpendicular to the surface at a given point.</p>
+
+  <p>In the (beautifully drawn with my laptop's trackpad, no doubt) image below normals N1, N2 and N3 are the surface normals at points A, B and C respectively.</p>
+
+  <img src="normals_doodle.png" class="outlinedImage"/>
+
+  <p>So, how do we calculate these normals?</p>
+
+  <p>For our current universe containing only a sphere, we could use the intersection point's position in 3D space to be interpreted as a vector. This will work because our sphere is centred on the origin at (0,0,0) but will break for any other type of world. We'll need a more general solution to this problem.</p>
+
+  <p>The computation used here might not seem obvious from the onset, so we'll describe a solution to the same problem in a 2D space first.</p>
+
+  <img src="2d_normal.png" class="outlinedImage"/>
+
+  <p>Whaaaaaaaat is this about? The purple shape is our 2D surface and <b>A</b> is the point of intersection at (Ax, Ay) we're trying to find the normal for. We've then taken a unit <b>s</b> and created four new points <b>a</b>, <b>b</b>, <b>c</b> and <b>d</b> by shifting <b>A</b> by either +<b>s</b> or -<b>s</b> along either the x or the y axis.</p>
+
+  <p>Let's call our distance function with those new points as input and see what we get...</p>
+  <ol>
+    <li>dist(<b>a</b>) = 0.42</li>
+    <li>dist(<b>b</b>) = -0.20</li>
+    <li>dist(<b>c</b>) = -0.18</li>
+    <li>dist(<b>d</b>) = 0.37</li>
+    <li>sum = 0.41</li>
+  </ol>
+
+  <p>Ah, interesting. The two points that were inside the surface return negative results while the two outside return a positive value. Let's take the weighed average <b>w</b> of these four points using their distance value as weights. We get:</p>
+
+  <ol>
+    <li>0.41*w = dist(a)*a + dist(b)*b + dist(c)*c + dist(d)*d</li>
+    <li>0.41*w = 0.42*a - 0.2*b - 0.18*c + 0.37*d</li>
+    <li>0.41*w = 0.42*(Ax,Ay+s) - 0.2*(Ax+s,Ay) - 0.18*(Ax,Ay-s) + 0.37*(Ax-s,Ay)</li>
+    <li>0.41*w = (0.42*Ax - 0.2(Ax+s) - 0.18*Ax + 0.37*(Ax-s), 0.42*(Ay+s) - 0.2*Ay - 0.18*(Ay-s) + 0.37*Ay)</li>
+    <li>0.41*w = (0.41*Ax - 0.57*s, 0.41*Ay + 0.6*s)</li>
+    <li>w = (Ax - 1.39*s, Ay + 1.46*s)</li>
+  </ol>
+
+  <p>If we add <b>w</b> to the previous 2D graph, we get something that looks an awful lot like the surface normal we've been after! In fact, the surface normal at <b>A</b> is vector <b>n</b>, which is equal to (<b>w</b>-<b>A</b>)</p>
+
+  <img src="2d_normal2.png" class="outlinedImage"/>
+
+  <p>The idea is the same for a surface normal in 3D space: take the point of intersection, generate 6 new points by shifting by +<b>s</b> or -<b>s</b> along the x, y or z axes, then compute their weighed average <b>w</b> using their distance from the surface as weight and finally calculate <b>n</b>=(<b>w</b>-<b>A</b>). Easymode :)</p>
+
+  <p>Let's write out the corresponding code.</p>
+
+  <pre><code>vec3 computeSurfaceNormal(vec3 p, float s){
+    vec3 a = p + vec3(-s,  0,  0);
+    vec3 b = p + vec3( s,  0,  0);
+    vec3 c = p + vec3( 0, -s,  0);
+    vec3 d = p + vec3( 0,  s,  0);
+    vec3 e = p + vec3( 0,  0, -s);
+    vec3 f = p + vec3( 0,  0,  s);
+    return
+        normalize(
+            distanceToNearestSurface(a)*(a-p) +
+            distanceToNearestSurface(b)*(b-p) +
+            distanceToNearestSurface(c)*(c-p) +
+            distanceToNearestSurface(d)*(d-p) +
+            distanceToNearestSurface(e)*(e-p) +
+            distanceToNearestSurface(f)*(f-p));
+}</code></pre>
+
+<p>Now, to test this we'll make a few changes to the world intersection code so it assigns pixel colour based on the normal. Changes are in bold.</p>
+
+<pre><code><b>vec4 intersectWithWorld</b>(vec3 p, vec3 dir){
+  float dist = 0.0;
+  for(int i = 0; i < 20; i++){
+    float nearest = distanceToNearestSurface(p + dir*dist);
+    if(nearest < 0.01){
+      <b>return vec4((vec3(1.0)+computeSurfaceNormal(p+dir*dist, 0.1))/2.0, 1.0);</b>
+    }
+    dist += nearest;
+  }
+  <b>return vec4(0.0);</b>
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy;
+  
+    // generate the ray for this pixel
+    vec2 camUV = uv*2.0 - vec2(1.0, 1.0);
+    vec3 nright = normalize(cross(cameraUp, cameraDirection));
+    vec3 pixel = cameraPosition + cameraDirection + nright*camUV.x*ulen + cameraUp*camUV.y*vlen;
+    vec3 rayDirection = normalize(pixel - cameraPosition);
+    
+    <b>fragColor = intersectWithWorld(cameraPosition, rayDirection);</b>
+}</code></pre>
+  
+  <img src="sphere_normals.png" class="outlinedImage"/>
+
+  <p>Awesome, we've got functional normals for our world! In case you're feeling unconvinced that this demonstrates reasonable normals, feel free to take a moment to think about the direction various parts of the sphere are "pointing" towards. If I take the very top of the sphere for instance, the colour there is a very pure green. When assigning the colour to the pixel when we generated this image, the red field mapped to the x axis, the green to the y and blue to the z - so at the very top of the sphere we have a normal that points straight up. Seems correct.</p>
+
+  <p>Let's simulate some lights now, shall we? For this we'll use a stripped down version of the Lambertian model. It goes a little something like this...</p>
+  <p>Intensity = dot(L, N)</p>
+  <p>L is the vector pointing from the surface to the light and N is the surface normal. Those two are enough to compute how much light gets back to our eye from that point on the surface. Let's try plugging this in to see what it looks like.</p>
+
+  <pre><code>
+<b>vec4 computeLambert(vec3 p, vec3 n, vec3 l){
+    return vec4(vec3(dot(l-p, n)/150.0), 1.0);
+}</b>
+
+vec4 intersectWithWorld(vec3 p, vec3 dir){
+  float dist = 0.0;
+  for(int i = 0; i < 20; i++){
+    float nearest = distanceToNearestSurface(p + dir*dist);
+    if(nearest < 0.01){
+      vec3 hit = p+dir*dist;
+      <b>return computeLambert(hit, computeSurfaceNormal(hit, 0.1), vec3(100.0, 30.0, 0.0));</b>
+    }
+    dist += nearest;
+  }
+  return vec4(0.0);
+}</code></pre>
+
+<img src="lambert.png" class="outlinedImage"/>
+
+  <p>This seems a little boring so let's make the light orbit around the sphere.</p>
+
+  <pre><code>vec4 intersectWithWorld(vec3 p, vec3 dir){
+    float dist = 0.0;
+    for(int i = 0; i < 20; i++){
+        float nearest = distanceToNearestSurface(p + dir*dist);
+        if(nearest < 0.01){
+            vec3 hit = p+dir*dist;
+            <b>vec3 light = vec3(100.0*sin(iGlobalTime),
+                            30.0*cos(iGlobalTime),
+                            50.0*cos(iGlobalTime));
+            return computeLambert(hit, computeSurfaceNormal(hit, 0.1), light);</b>
+        }
+        dist += nearest;
+    }
+    return vec4(0.0);
+}</code></pre>
+
+<p>And here's what we've got now, with the animation.</p>
+
+<iframe width="500" height="360" frameborder="0" src="https://www.shadertoy.com/embed/4ljXRh?gui=true&t=10&paused=false" allowfullscreen></iframe>
+
+<p>The lighting model used here was kept to a bare minimum in terms of complexity and is definitely a far shot from the prettiest one. I may delve into more lighting models in future posts, but for the next few I'll most likely be covering new geometric shapes and textures, so if you're the impatient type I'd recommend you look up the Blinn-Phong model and try to implement that :)</p>
+
+<p>You can find the Sphere Tracing 102 shader here: <a href="https://www.shadertoy.com/view/4ljXRh">https://www.shadertoy.com/view/4ljXRh</a></p>
+
+</div>
+</body>
+
+</html>
