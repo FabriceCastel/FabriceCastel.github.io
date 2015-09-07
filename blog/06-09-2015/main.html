@@ -78,16 +78,18 @@
 
 <p>Now, to test this we'll make a few changes to the world intersection code so it assigns pixel colour based on the normal. Changes are in bold.</p>
 
-<pre><code><b>vec4 intersectWithWorld</b>(vec3 p, vec3 dir){
+<pre><code><b>const float S = 0.1;</b>
+[...]
+<b>vec3 intersectWithWorld</b>(vec3 p, vec3 dir){
   float dist = 0.0;
   for(int i = 0; i < 20; i++){
     float nearest = distanceToNearestSurface(p + dir*dist);
     if(nearest < 0.01){
-      <b>return vec4((vec3(1.0)+computeSurfaceNormal(p+dir*dist, 0.1))/2.0, 1.0);</b>
+      <b>return vec3(1.0)+computeSurfaceNormal(p+dir*dist, S))/2.0;</b>
     }
     dist += nearest;
   }
-  <b>return vec4(0.0);</b>
+  <b>return vec3(0.0);</b>
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
@@ -100,7 +102,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec3 pixel = cameraPosition + cameraDirection + nright*camUV.x*ulen + cameraUp*camUV.y*vlen;
     vec3 rayDirection = normalize(pixel - cameraPosition);
     
-    <b>fragColor = intersectWithWorld(cameraPosition, rayDirection);</b>
+    <b>vec3 pixelColour = intersectWithWorld(cameraPosition, rayDirection);
+    fragColor = vec4(pixelColour, 1.0);</b>
 }</code></pre>
   
   <img src="sphere_normals.png" class="outlinedImage"/>
@@ -111,29 +114,28 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
   <p>Intensity = dot(L, N)</p>
   <p>L is the vector pointing from the surface to the light and N is the surface normal. Those two are enough to compute how much light gets back to our eye from that point on the surface. Let's try plugging this in to see what it looks like.</p>
 
-  <pre><code>
-<b>vec4 computeLambert(vec3 p, vec3 n, vec3 l){
-    return vec4(vec3(dot(l-p, n)/150.0), 1.0);
+  <pre><code><b>vec3 computeLambert(vec3 p, vec3 n, vec3 l){
+    return vec3(dot(normalize(l-p), n));
 }</b>
 
-vec4 intersectWithWorld(vec3 p, vec3 dir){
+vec3 intersectWithWorld(vec3 p, vec3 dir){
   float dist = 0.0;
   for(int i = 0; i < 20; i++){
     float nearest = distanceToNearestSurface(p + dir*dist);
     if(nearest < 0.01){
       vec3 hit = p+dir*dist;
-      <b>return computeLambert(hit, computeSurfaceNormal(hit, 0.1), vec3(100.0, 30.0, 0.0));</b>
+      <b>return computeLambert(hit, computeSurfaceNormal(hit, S), vec3(100.0, 30.0, 0.0));</b>
     }
     dist += nearest;
   }
-  return vec4(0.0);
+  return vec3(0.0);
 }</code></pre>
 
 <img src="lambert.png" class="outlinedImage"/>
 
   <p>This seems a little boring so let's make the light orbit around the sphere.</p>
 
-  <pre><code>vec4 intersectWithWorld(vec3 p, vec3 dir){
+  <pre><code>vec3 intersectWithWorld(vec3 p, vec3 dir){
     float dist = 0.0;
     for(int i = 0; i < 20; i++){
         float nearest = distanceToNearestSurface(p + dir*dist);
@@ -142,11 +144,11 @@ vec4 intersectWithWorld(vec3 p, vec3 dir){
             <b>vec3 light = vec3(100.0*sin(iGlobalTime),
                             30.0*cos(iGlobalTime),
                             50.0*cos(iGlobalTime));
-            return computeLambert(hit, computeSurfaceNormal(hit, 0.1), light);</b>
+            return computeLambert(hit, computeSurfaceNormal(hit, S), light);</b>
         }
         dist += nearest;
     }
-    return vec4(0.0);
+    return vec3(0.0);
 }</code></pre>
 
 <p>And here's what we've got now, with the animation.</p>
