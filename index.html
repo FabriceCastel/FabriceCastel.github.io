@@ -40,6 +40,12 @@
   const vec3 camDir = vec3(0.0, 0.0, 1.0);
   const vec3 camUp = vec3(0.0, 1.0, 0.0);
 
+  const float S = 0.1;
+  const vec3 deltax = vec3(S ,0, 0);
+  const vec3 deltay = vec3(0 ,S, 0);
+  const vec3 deltaz = vec3(0 ,0, S);
+
+
   float camOrbitSpeed = 20.0;
 
   float sDistCalls = 0.0;
@@ -208,22 +214,13 @@
       return sDist3(p);
   }
   
-  // 6 point sample normal
   vec3 sNormal(vec3 p){
-    vec3 a = p + EPSILON*vec3(-1,  0,  0);
-    vec3 b = p + EPSILON*vec3( 1,  0,  0);
-    vec3 c = p + EPSILON*vec3( 0, -1,  0);
-    vec3 d = p + EPSILON*vec3( 0,  1,  0);
-    vec3 e = p + EPSILON*vec3( 0,  0, -1);
-    vec3 f = p + EPSILON*vec3( 0,  0,  1);
-    return
-      normalize(
-        sDist(a)*(a-p) +
-        sDist(b)*(b-p) +
-        sDist(c)*(c-p) +
-        sDist(d)*(d-p) +
-        sDist(e)*(e-p) +
-        sDist(f)*(f-p));
+      float d = sDist(p);
+      return normalize(vec3(
+          sDist(p+deltax)-d,
+          sDist(p+deltay)-d,
+          sDist(p+deltaz)-d
+      ));
   }
 
   // Blinn-Phong shader
@@ -270,6 +267,7 @@
   vec4 traceRay(vec3 pixel, vec3 ray){
     float d = 0.0;     // the current distance the ray has travelled
     float delta = 0.0; // the distance between the current position and the nearest surface
+    vec4 result = vec4(1.0);
     for(int i = 0; i < MAX_ITERATIONS; i++){ // can't use while loops in WebGL shaders :'(
       delta = sDist(pixel + d*ray);
       if(delta <= EPSILON){ // we have a hit!
@@ -292,15 +290,15 @@
             }
           }
         }
-        return vec4(blinnPhongShade(pixel + d*ray, camPos), 1.0);
+        result = vec4(blinnPhongShade(pixel + d*ray, camPos), 1.0);
+        break;
       }
       d = d + delta;
       if(d >= MAX_DISTANCE){
         break;
       }
     }
-    // no hits, return white background
-    return vec4(1.0, 1.0, 1.0, 0.0);
+    return result;
   }
 
   void main(void) {
