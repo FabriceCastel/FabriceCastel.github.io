@@ -13,6 +13,10 @@
   <h3>September 6th 2015</h3>
   <h3><a href="../../blog.html">(Take me back to the Blog section!)</a></h3>
 
+  <p><b>EDIT</b> (7:00PM December 11th 2015) - I've fixed some issues with regards to the normal computation/explanation section with a rewrite and some new images to go along with it.</p>
+
+  <hr>
+
   <p>In this I'll be covering a very basic lighting model and animating the light source position. Let's pick up where we left off at the end of Sphere Tracing 101 with the following shader: <a href="https://www.shadertoy.com/view/4tsXzf">https://www.shadertoy.com/view/4tsXzf</a>.</p>
 
   <p>So far, we've only been returning a boolean to indicate whether or not our ray had hit the sphere. In order to figure out how the light is going to interact with the sphere's surface, we're going to need more information about the surface at that point. Enter the surface normal! The normal is a vector "pointing" in the direction that the surface is facing at a specific point in space. In other words, the surface normal is a vector perpendicular to the surface at a given point.</p>
@@ -25,55 +29,46 @@
 
   <p>For our current universe containing only a sphere, we could use the intersection point's position in 3D space to be interpreted as a vector. This will work because our sphere is centred on the origin at (0,0,0) but will break for any other type of world. We'll need a more general solution to this problem.</p>
 
-  <p>The computation used here might not seem obvious from the onset, so we'll describe a solution to the same problem in a 2D space first.</p>
+  <p>The computation used here might not seem obvious from the onset, so we'll describe a solution to the same problem in a 2D space first. In a nutshell, we'll be sampling points close to the point of intersection and taking a weighed average of their distance to the surface to work out a normal approximation. Here we go!</p>
 
   <img src="2d_normal.png" class="outlinedImage"/>
 
-  <p>Whaaaaaaaat is this about? The purple shape is our 2D surface and <b>A</b> is the point of intersection at (Ax, Ay) we're trying to find the normal for. We've then taken a unit <b>s</b> and created four new points <b>a</b>, <b>b</b>, <b>c</b> and <b>d</b> by shifting <b>A</b> by either +<b>s</b> or -<b>s</b> along either the x or the y axis.</p>
+  <p>Whaaaaaaaat is this about? The purple shape is our 2D surface and <b>A</b> is the point of intersection at (Ax, Ay) we're trying to find the normal for. We've then taken a unit <b>s</b> and created two new points <b>a</b> and <b>b</b> by shifting <b>A</b> by <b>s</b> along  the x and y axes.</p>
 
-  <p>Let's call our distance function with those new points as input and see what we get...</p>
+  <p>Let's call our distance function with those new points as input and see what we get... (I'm making these numbers up, just roll with it)</p>
   <ol>
-    <li>dist(<b>a</b>) = 0.42</li>
-    <li>dist(<b>b</b>) = -0.20</li>
-    <li>dist(<b>c</b>) = -0.18</li>
-    <li>dist(<b>d</b>) = 0.37</li>
-    <li>sum = 0.41</li>
+    <li>dist(<b>a</b>) = 0.9</li>
+    <li>dist(<b>b</b>) = 0.4</li>
   </ol>
 
-  <p>Ah, interesting. The two points that were inside the surface return negative results while the two outside return a positive value. Let's take the weighed average <b>w</b> of these four points using their distance value as weights. We get:</p>
-
-  <ol>
-    <li>0.41*w = dist(a)*a + dist(b)*b + dist(c)*c + dist(d)*d</li>
-    <li>0.41*w = 0.42*a - 0.2*b - 0.18*c + 0.37*d</li>
-    <li>0.41*w = 0.42*(Ax,Ay+s) - 0.2*(Ax+s,Ay) - 0.18*(Ax,Ay-s) + 0.37*(Ax-s,Ay)</li>
-    <li>0.41*w = (0.42*Ax - 0.2(Ax+s) - 0.18*Ax + 0.37*(Ax-s), 0.42*(Ay+s) - 0.2*Ay - 0.18*(Ay-s) + 0.37*Ay)</li>
-    <li>0.41*w = (0.41*Ax - 0.57*s, 0.41*Ay + 0.6*s)</li>
-    <li>w = (Ax - 1.39*s, Ay + 1.46*s)</li>
-  </ol>
-
-  <p>If we add <b>w</b> to the previous 2D graph, we get something that looks an awful lot like the surface normal we've been after! In fact, the surface normal at <b>A</b> is vector <b>n</b>, which is equal to (<b>w</b>-<b>A</b>)</p>
+  <p>If we take a vector whose components matches the distances of <b>a</b> and <b>b</b> we get a vector <b>n</b> perpendicular to the surface!</p>
 
   <img src="2d_normal2.png" class="outlinedImage"/>
 
-  <p>The idea is the same for a surface normal in 3D space: take the point of intersection, generate 6 new points by shifting by +<b>s</b> or -<b>s</b> along the x, y or z axes, then compute their weighed average <b>w</b> using their distance from the surface as weight and finally calculate <b>n</b>=(<b>w</b>-<b>A</b>). Easymode :)</p>
+  <p>My drawing of vector <b>n</b> isn't to scale, it's about twice as long as it would be "for realsies".</p>
+
+  <p>Note that by doing this our vector <b>n</b> isn't normalized (ie. its length isn't 1) so in our computeSurfaceNormal() function we'll have to make sure to apply the normalize() method provided by GLSL before returning the vector. Also note that this is an approximation and that in order to get the most accurate approximation possible the choice of <b>s</b> is key. You'll want an <b>s</b> that's large enough to avoid small arithmetic errors (because your point A won't be exactly on the surface, only less than epsilon distance away from it) and small enough so that the surface behaves like a straight line at your <b>a</b> and <b>b</b> sample points.</p>
+
+  <p>The idea is the same for a surface normal in 3D space: take the point of intersection, generate 3 new points by shifting by <b>s</b> along the x, y or z axes, then use their distance from the surface to generate a vector perpendicular to the surface. Easymode :)</p>
 
   <p>Let's write out the corresponding code.</p>
 
-  <pre><code>vec3 computeSurfaceNormal(vec3 p, float s){
-    vec3 a = p + vec3(-s,  0,  0);
-    vec3 b = p + vec3( s,  0,  0);
-    vec3 c = p + vec3( 0, -s,  0);
-    vec3 d = p + vec3( 0,  s,  0);
-    vec3 e = p + vec3( 0,  0, -s);
-    vec3 f = p + vec3( 0,  0,  s);
-    return
-        normalize(
-            distanceToNearestSurface(a)*(a-p) +
-            distanceToNearestSurface(b)*(b-p) +
-            distanceToNearestSurface(c)*(c-p) +
-            distanceToNearestSurface(d)*(d-p) +
-            distanceToNearestSurface(e)*(e-p) +
-            distanceToNearestSurface(f)*(f-p));
+  <pre><code>const float S = 0.1;
+
+// const delta vectors for normal calculation
+const vec3 deltax = vec3(S ,0, 0);
+const vec3 deltay = vec3(0 ,S, 0);
+const vec3 deltaz = vec3(0 ,0, S);
+
+[...]
+
+vec3 computeSurfaceNormal(vec3 p){
+    float d = distanceToNearestSurface(p);
+    return normalize(vec3(
+        distanceToNearestSurface(p+deltax)-d,
+        distanceToNearestSurface(p+deltay)-d,
+        distanceToNearestSurface(p+deltaz)-d
+    ));
 }</code></pre>
 
 <p>Now, to test this we'll make a few changes to the world intersection code so it assigns pixel colour based on the normal. Changes are in bold.</p>
