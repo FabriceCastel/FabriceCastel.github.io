@@ -1,0 +1,42 @@
+<html>
+
+<head>
+<title>f_castel</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+
+<body>
+<div class="blogContainer">
+  <h2>Signed Distance Field Modelling Tool Project</h2>
+  <h3>December 11th 2015</h3>
+  <h3><a href="../../blog.html">(Take me back to the Blog section!)</a></h3>
+
+  <p>I've started working on a new project this week. In a nutshell it's a 3D modelling tool I envision with a UI similar to a stripped down version of Maya or Cinema4D (ie. place 3D primitives in the scene, perform operations on them, etc). For now I'm working on an OSX implementation though most of the code should be platform independant. If I achieve enough milestones and if there's a demand for it I might work on implementing Linux and Windows clients. Who knows, maybe I'll go nuts and make an Android one given it's closer to my professional experience.</p>
+
+  <p>Here's what I've managed to put together in the few hours spent working on it:</p>
+
+  <img src="field_editor_hello_world.png" class="outlinedImage"/>
+
+  <p>What you're looking at is a window whose viewport is fully covered with two triangles. These triangles are then getting passed through OpenGL's rendering pipeline up all the way into a GLSL fragment shader which ultimately determines the colour of each individual pixel in the window. The code that determines the colour of each pixel is what I'll be using to render entire scenes set up through the application's GUI (ie. I'll be generating code dynamically and recompiling the GLSL shader on the fly every time the user makes changes to the 3D scene).</p>
+
+  <p>What I'm looking to do next is add a simple text editor to modify the shader code being run in this window. This is the current stumbling block I'm running up against - it seems the way to go is to use Apple's Cocoa framework / Objective-C++ to put that portion of the application together. I've never used the language or framework so progress on that front will be a bit slower as I learn my way through it.</p>
+
+  <p>I've put together a rough set of milestones for the next few months to set out a direction for the project.</p>
+
+  <h2>Milestones</h2>
+  <ol>
+  	<li>Simple text editor window</li>
+  	<li>Render performance metrics (overlay?)</li>
+  	<li>3D primitive GUI toolset</li>
+  	<li>Complex modelling operation toolset (world reflections, folding, time-based modification, object intersection behaviour... each one being its own mini-milestone)</li>
+  	<li>Texturing system</li>
+  </ol>
+
+  <p>I've unfortunately got final exams this semester until December 22nd (grrrr UWaterloo) so serious work on this project is likely to only get started early January.</p>
+
+</div>
+</body>
+
+</html>
