@@ -4,7 +4,7 @@ var frame = 0.0;
 function initGL(canvas) {
     var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     var isSafari = /Safari/i.test(navigator.userAgent) && !(/Chrome/i.test(navigator.userAgent));
-    if(!(isMobile || isSafari)) {
+    if(!(isMobile)) {
         try {
             gl = canvas.getContext("webgl");
             gl.viewportWidth = canvas.width;
