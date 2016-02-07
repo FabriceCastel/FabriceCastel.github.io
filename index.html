@@ -165,10 +165,7 @@
     float g2 = cSmooth(s3, s4, 0.2);
     float g3 = cSmooth(s5, s6, 0.2);
     float g4 = cSmooth(s7, s8, 0.2);
-    float group = cSmooth(g1, g2, g3, g4, 0.3);
-    
-    float blob = cSmooth(base, group, 0.5);
-    return blob;
+    return max(min(g4, g2), min(g3, g1));
   }
 
   float sDist1(vec3 p){
