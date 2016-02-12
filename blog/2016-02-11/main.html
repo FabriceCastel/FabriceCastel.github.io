@@ -1,0 +1,213 @@
+<html>
+
+<head>
+<title>f_castel</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+
+<body>
+<div class="blogContainer">
+  <h2>Sphere Tracing 103</h2>
+  <h3>February 11th 2016</h3>
+  <h3><a href="../../blog.html">(Take me back to the Blog section!)</a></h3>
+
+  <p>In this I'll be creating a new geometric object using signed distance fields. Let's pick up where we left off at the end of Sphere Tracing 102 with the following shader: <a href="https://www.shadertoy.com/view/4ljXRh">https://www.shadertoy.com/view/4ljXRh</a>.</p>
+
+  <p>We've already covered how to describe a sphere object as a signed distance function back in the Sphere Tracing 101 post, so the next shape on the chopping block is the cube!</p>
+
+  <p>Let's once again start off trying to solve this problem in a 2D space. Assume we have an arbitrary point P(x,y) and we'd like to know its distance to the nearest of the square's four faces (setting the distance to a negative value when the point lies inside the sqare).</p>
+
+  <img src="dsquare.png" class="outlinedImage"/>
+
+  <p>Here, we have four "2D planes" (lines, really) N, S, E and W. The function <b>d(p)</b> returns the largest signed distance between p and the four lines. Let the lines be defined by:<code>N: y = 3<br>S: y = 1<br>E: x = 3<br>W: x = 1</code>...and let <b>P</b> have coordinates (4,5)</p>
+
+  <p>We'll define the signed distance function as follows:<code>d(p) = max(dN(p), dS(p), dE(p), dW(p))</code><br>where the four lines' signed distance function are defined as:<code>dN(p) = p.y - 3 = 2<br>dS(p) = 1 - p.y = -4<br>dE(p) = p.x - 3 = 1<br>dW(p) = 1 - p.x = -3</code></p>
+
+  <p>So here we have <b>d(p) = 2</b>. Note that this is in fact smaller than the distance between <b>P</b> and our square, but this will work because it will allow us to take further steps towars it until we're within epsilon of it and consider it a valid hit. This being said, we will later examine a more accurate way of measuring the distance between a point and a square/cube for these (litteral) edge cases.</p>
+
+  <p>So now let's take this 2D signed distance and move it into 3D space! In much the same way we defined our N, S, E and W lines we can define the six planes forming the face of our cube like so (let <b>2*s</b> be the length of our cube's edges):<code>N: y = s<br>S: y = -s<br>E: x = s<br>W: x = -s<br>F: z = s<br>B: z = -s</code></p>
+
+  <p>Now we get a signed distance function for each one of the faces:<code>dN(p) = p.y - s<br>dS(p) = -s - p.y<br>[etc...]</code></p>
+
+  <p>Taking the max value of all of these 6 functions will give us the final distance function <b>d</b>. Let's write some code now to see if any of this is right or if I'm full of shit and made up a bunch of nonsense math. Let's replace the contents of the old <b>distanceToNearestSurface</b> function.</p>
+
+  <pre><code>float distanceToNearestSurface(vec3 p){
+  float s = 1.4;
+  float dN = p.y - s;
+  float dS = -s - p.y;
+  float dE = p.x - s;
+  float dW = -s - p.x;
+  float dF = p.z - s;
+  float dB = -s - p.z;
+  float x = max(dE, dW);
+  float y = max(dN, dS);
+  float z = max(dF, dB);
+  return max(max(x, z), y);
+}</code></pre>
+
+  <p>Because the light we set up in the previous blog post is set to rotate around the object the cube might take a few seconds to show up, but it's there alright. It's sort of hard to see because the camera is sitting directly in front of it, so let's make the camera rotate around the cube at an angle so we can get a better look at it to make sure it renders as expected. We'll move the <b>cameraPosition</b>, <b>cameraDirection</b> and <b>cameraUp</b> variables into the <b>mainImage()</b> function since those will be different for each frame.</p>
+
+  <pre><code>void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+  vec2 uv = fragCoord/iResolution.xy;
+  
+  <b>float cameraDistance = 10.0;
+  vec3 cameraPosition = vec3(10.0*sin(iGlobalTime), 0.0, 10.0*cos(iGlobalTime));
+  vec3 cameraDirection = vec3(-1.0*sin(iGlobalTime), 0.0, -1.0*cos(iGlobalTime));
+  vec3 cameraUp = vec3(0.0, 1.0, 0.0);</b>
+
+  [...]
+}</code></pre>
+
+  <p>The cube edges seem rounder than we'd like them to be. This is due to <b>S</b>, which determines how far we move along the x, y and z axes when computing the surface normal. A larger value will result in rounder corners whereas a smaller <b>S</b> will yield sharp edges. This could be use for stylistic effect, depending on what look you're after. For the purpose of this blog post, we'll tighten the edges by setting a new value for <b>S</b> of <b>0.01</b>.</p>
+
+  <img src="cube01.png" class="outlinedImage" />
+
+  <p>Now let's go back to our cube distance function implementation for a minute to see if there's room for improvement. Here we're calculating 6 different point to surface distances and taking the max of all 6. Do we really need to do this? (spoiler alert: nah, we don't)</p>
+
+  <p>The assumption here is that the cube we're describing is centred around the origin and that each of its vertices lies at equal distance from the origin (that's a roundabout way of saying "that's a cube"). So if we were to take our point <b>P</b>'s reflection by any of the x, y or z axes it would lie at an equal distance from the cube.</p>
+
+  <p>Let's go back to my crappy 2D doodles to break it down in easier to understand bits:</p>
+
+  <img src="reflections.png" class="outlinedImage"/>
+
+  <p>Here, <b>P</b> lies in the bottom left quadrant. The other three grey points are its reflection by the x, y and xy axes (where xy means both reflections are applied one after the other in whichever order). You can see that the distance function remains constant for all reflections of <b>P</b>. What this allows us to do is to take any <b>P</b> we're given, take the absolute value of all of its coordinates (effectively turning it into the reflection in the top right quadrant) and only do the distance calculations for the top face and the right face of the square. This will work because by forcing our point <b>P</b> into the top right quadrant we know the nearest faces will always be either the top or right face, meaning we can ignore the other two faces and spare ourselves these calculations!</p>
+
+  <p>Now our distance function looks like this:<code>d(P) = max(dN(abs(P)), dE(abs(P)))<br>dN(p) = p.y - s<br>dE(p) = p.x - s</code>
+
+  <p>We've (kinda) halved our calculations! The (kinda) is there because now we have the extra cost of calculating <b>abs(P)</b>, though it's definitely a worthwhile trade. Let's skip back to 3D and rewrite our distance function with this idea in mind:</p>
+
+  <pre><code>float distanceToNearestSurface(vec3 p){
+  float s = 1.0;
+  vec3 absP = abs(p);
+  float dN = absP.y - s;
+  float dE = absP.x - s;
+  float dF = absP.z - s;
+  return max(max(dN, dE), dF);
+}</code></pre>
+
+  <p>The three variables <b>dN</b>, <b>dE</b> and <b>dF</b> are all individual components of a vector, so we could easily rewrite the code like so:</p>
+
+<pre><code>float distanceToNearestSurface(vec3 p){
+  float s = 1.0;
+  vec3 q = abs(p) - vec3(s);
+  return max(max(q.x, q.y), q.z);
+}</code></pre>
+
+  <p>Now while this approach works, it doesn't hold up as a rigorous signed distance field. Let's have a look at why that is and how we can fix it.</p>
+
+  <img src="method1problem.png" class="outlinedImage"/>
+
+  <p>What I've drawn here is a representation of a square's signed distance field. The blue lines represent the area of the graph where <b>d(P)</b> equals 1, 2, 3 and 4. You'll notice that if we take a point <b>P</b> that is both above the top face of the square and to the right of it, we get a smaller <b>d(P)</b> (<b>d1</b> in this example) relative to the true distance between <b>P</b> and the square, illustrated by the green line <b>d2</b>.</p>
+
+  <p>This means that with our rendering algorithm, if the distance function returned <b>d2</b>, we would step right onto the cube's surface and detect a hit in just one step. Having the distance function return <b>d1</b> instead forces us to take a smaller step towards our target, so instead of detecting a hit in one step we wind up taking several unnecessary steps. How can we fix our distance field to avoid this? What's our ideal distance field supposed to look like?</p>
+
+  <img src="method1problem2.png" class="outlinedImage"/>
+
+  <p>This drawing got a bit messier than intended, but bear with me here. The added pinkish purplish lines are what the corner area of the distance field should look like if it were truly representative of the distance between <b>P</b> and the square. It's really a series of circles centred on the corner of the square, which should give us a good hint as to where to look first.</p>
+
+  <p>Let's consider our two main cases here:</p>
+  <ol><li>The point lies below the top face or to the left of the right face (in this case our current distance function accurately represents the distance between P and the square)</li><li>The point lies off in the top right area deleniated by the dashed pink lines where our current distance function is broken.</li></ol>
+
+  <p>Now let's redraw this with the origin offset to the square's corner.</p>
+
+  <img src="method1problem3.png" class="outlinedImage"/>
+
+  <p>You'll notice that point <b>P</b> turned into <b>q</b> because the change of basis we did here is in fact equivalent to this line in our code:</p>
+
+  <pre><code> vec3 q = abs(p) - vec3(s);</code></pre>
+
+  <p>It should be fairly easy to note that we can now tell when to use which of the two distance functions (blue vs. pink) based on <b>q</b>'s coordinates: if either of its x or y is negative, we want to use the blue, otherwise use the pink. This pink distance function is simply the distance from <b>q</b> to the origin, and we've already implemented the blue distance function. Bringing this idea back into the 3rd dimenison is fairly straightforward - we get our <b>q</b> and if any of its components are negative, we use the old distance function. Otherwise we should return the distance between <b>q</b> and the origin, ie. the length of <b>q</b>. This should be familiar given we've already talked about signed distance function for spheres :)</p>
+
+  <pre><code>float distanceToNearestSurface(vec3 p){
+  float s = 1.0;
+  vec3 q = abs(p) - vec3(s);
+  float dist = max(max(q.x, q.y), q.z);
+  if(q.x > 0.0 && q.y > 0.0 && q.z > 0.0){
+    dist = length(q);
+  }
+  return dist;
+}</code></pre>
+
+  <p>This code is an almost verbatim transcription of the paragraph above and is fairly clunky. We'd like to avoid using an if statement there, so let's consider ~*(<i>author forgets to finish sentence</i>)*~</p>
+
+  <p>This is the point where I tab over to <a href="http://iquilezles.org/www/articles/distfunctions/distfunctions.htm">http://iquilezles.org/</a> (a wonderful resource maintained by Íñigo Quílez) to try and remember what signed distance function I was trying to arrive at.</p>
+
+
+  <pre><code>// Refernce code from:
+// http://iquilezles.org/www/articles/distfunctions/distfunctions.htm
+// yes, it's missing an 'l' at the end - no, that's not a typo
+
+float sdBox( vec3 p, vec3 b )
+{
+  vec3 d = abs(p) - b;
+  return min(max(d.x,max(d.y,d.z)),0.0) +
+         length(max(d,0.0));
+}</code></pre>
+
+  <p>The way this code works might not be obvious right away. I'd encourage you to look at it and try to figure it out on your own before reading on. I had to think about it for quite a while and graph out a 2D version before it clicked in my head.</p>
+
+  <p>So then, here's the 2D graph and how I made sense of the formula:</p>
+
+  <img src="sdfcombination.png" class="outlinedImage"/>
+
+  <p>Consider the four points, <b>A</b>, <b>B</b>, <b>C</b> and <b>D</b>. Let's crudely reduce the distance function to try and get rid of the min/max functions in order to understand their effect (since that's what's puzzling about this function). The notation below is a little sloppy, I'm using square brackets to denote 2D vectors.</p>
+
+<pre><code>// 2D version of the function
+d(p) = min(max(p.x, p.y), 0)
+       + length(max(p, 0))
+
+---
+
+d(A) = min(max(-1, -1), 0)
+       + length(max([-1, -1], 0))
+
+d(A) = -1 + length[0, 0]
+
+---
+
+d(B) = min(max(1, 1), 0)
+       + length(max([1, 1], 0))
+
+d(B) = 0 + length[1, 1]</code></pre>
+  
+  <p>Ok, so far nothing special. When <b>A</b> is inside the square, we essentially get our first distance function based on planes/lines and when <b>B</b> is in the area where our first distance function is inaccurate, it gets zeroed out and we get the second distance function (the length). The trick lies in the other two cases <b>C</b> and <b>D</b>. Let's work them out.</p>
+
+<pre><code>d(C) = min(max(-1, 1), 0)
+      + length(max([-1, 1], 0))
+
+d(C) = 0 + length[0, 1]
+
+---
+
+d(D) = min(max(1, -1), 0)
+       + length(max([-1, 1], 0))
+
+d(D) = 0 + length[1, 0]</code></pre>
+
+  <p>If you look back to the graph above, you'll note <b>C'</b> and <b>D'</b>. Those points have coordinates [0,1] and [1,0], respectively. This method uses the fact that both distance fields intersect on the axes - that <b>D</b> and <b>D'</b> lie at the same distance from the square.</p>
+
+  <p>If we zero out all negative component of a vector and take its length we will get the proper distance between the point and the square (for points outside of the square only). This is what <b>max(d,0.0)</b> does; a component-wise max operation. So long as the vector has at least one positive component, <b>min(max(d.x,d.y),0.0)</b> will resolve to 0 leaving us with only the second part of the equation. In the event that the point is inside the square, we want to return the first part of the equation (since it represents our first distance function). If all components of the vector are negative it's easy to see our condition will be met.</p>
+
+  <p>This understanding should tranlsate back into 3D seamlessly once you wrap your head around it. You may or may not have to draw a few graphs by hand to really "get" it - I know I did and would encourage you to do so if you're dissatisfied with my explanation.</p>
+
+<p>Working this implementation into our own code, we get this:</p>
+
+<pre><code>float distanceToNearestSurface(vec3 p){
+  float s = 1.0;
+  vec3 d = abs(p) - vec3(s);
+  return min(max(d.x, max(d.y,d.z)), 0.0)
+      + length(max(d,0.0));
+}</code></pre>
+
+  <p>And there you have it, a cube for our world.</p>
+
+
+
+
+</div>
+</body>
+
+</html>
