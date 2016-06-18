@@ -74,6 +74,8 @@ float distanceToNearestSurface(vec3 p){
   <b>return max(-sphere(p), cube(p));</b>
 }</code></pre>
 
+<p><i>Note: flipping the sign of the sphere distance function only works when it's a signed distance field.</i></p>
+
 <img src="sub.png" class="ountlinedImage"/>
 
 <p>This post was on the shorter side but I feel I've covered enough here regarding CSG for today. Hopefully these tools will come in handy in your graphics-related experiments and projects :) There are more ways to handle combination of volumes which I may write about in the future. Before then I'm planning to add colours to the drab greyscale renders we've been working with up until now, so I'd expect this to come down the pipeline next. Thanks for reading!</p>
