@@ -200,7 +200,7 @@
   }
 
   float sDist(vec3 p){
-    sDistCalls += 1.0;
+    sDistCalls = sDistCalls + 1.0;
 
     float cscene = mod(currentScene, NUMBER_OF_SCENES);
     if(cscene == 0.0)
@@ -369,11 +369,11 @@
         break;
       }
       
-      gl_FragColor += res;
+      gl_FragColor = gl_FragColor + res;
     }
 
     // average out the total AA rays and apply gamma correction
-    gl_FragColor *= (1.0/float(RAYS_PER_PIXEL));
+    gl_FragColor = gl_FragColor * (1.0/float(RAYS_PER_PIXEL));
     gl_FragColor = pow(gl_FragColor, vec4(1.0/2.2));
 
     if(PERF_DEBUG){
