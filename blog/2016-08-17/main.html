@@ -19,7 +19,7 @@
 
   <img src="domain-repetition01.png" class="outlinedImage"/>
 
-  <p>Above we have a circle centred around (1,1). Let's say we want that circle to repeat infinitely many times along the x axis, where we repeat the contents of the red dotted box. With the repetition, we wish for our distance function to tell us that the point (-1,-1) lies within the circle. However the distance function will evaluate to something close to 1.5.</p>
+  <p>Above we have a circle centred around (1,1). Let's say we want that circle to repeat infinitely many times along the x axis, where we repeat the contents of the red dotted box. With the repetition, we wish for our distance function to tell us that the point (-1,1) lies within the circle. However the distance function will evaluate to something close to 1.5.</p>
 
   <img src="domain-repetition02.png" class="outlinedImage"/>
 
@@ -27,7 +27,7 @@
 
   <img src="domain-repetition03.png" class="outlinedImage"/>
 
-  <p>In the image above, the purple x at (-1,-1) would normally lie 1.5 units away from the nearest surface, but by computing the distance of it, modulo the x coordinate with 2, we get a distance of -0.5 (ie. it's in the middle of the circle).</p>
+  <p>In the image above, the purple x at (-1,1) would normally lie 1.5 units away from the nearest surface, but by computing the distance of it, modulo the x coordinate with 2, we get a distance of -0.5 (ie. it's in the middle of the circle).</p>
 
   <p>Assuming <b>circle()</b> is a distance function describing our circle centred around (1,1), we would have the following world distance function pseudo-code.</p>
 
