@@ -27,7 +27,7 @@
 
   <img src="domain-repetition03.png" class="outlinedImage"/>
 
-  <p>In the image above, the purple x at (-1,1) would normally lie 1.5 units away from the nearest surface, but by computing the distance of it, modulo the x coordinate with 2, we get a distance of -0.5 (ie. it's in the middle of the circle).</p>
+  <p>In the image above, the purple x at (-1,1) would normally lie 1.25 units away from the nearest surface, but by computing the distance of it, modulo the x coordinate with 2, we get a distance of -0.25 (ie. it's in the middle of the circle).</p>
 
   <p>Assuming <b>circle()</b> is a distance function describing our circle centred around (1,1), we would have the following world distance function pseudo-code.</p>
 
@@ -45,7 +45,7 @@
   <p>Let's illustrate this with an example. Let's say we have a circle of radius 0.5 centred at (0.5,0.5) and that we wanted to repeat the (0,0) to (2,2) region infinitely many times along the x axis.</p>
   <img src="domain-repetition05.png" class="outlinedImage"/>
 
-  <p>As you can see, we have here a little case of the oopsies. The distance function returns 1.8 for the purple point (because if we take the modulus of 1.8 by 2 we get 1.8) when we would in fact want it to evaluate to 0.2.</p>
+  <p>As you can see, we have here a little case of the oopsies. The distance function returns 0.8 for the purple point (because if we take the modulus of 1.8 by 2 we get 1.8, which is 0.8 units away from the circle in the red box) when we would in fact want it to evaluate to 0.2.</p>
 
   <p>Think about the red dotted square region as a tile you'd be placing on your brand spankin' new bathroom floor. Let's say the distance field dictates the colour on your tile. In order for the distance field to be "valid", the colour needs to always change smoothly between neighboring areas. What I mean is that you should have no sudden jump in the colour when you lay out all of those bathroom tiles. In other words, they should tile properly. If there's an error and the tiles don't line up (as in the example above) it'll fuck up your entire scene with a score of gross rendering artifacts.</p>
 
